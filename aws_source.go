@@ -9,17 +9,23 @@ import (
 	"time"
 )
 
-type awsPrefix struct {
+type awsIpv4Prefix struct {
 	IpPrefix           string `json:"ip_prefix"`
-	Ipv6Prefix         string `json:"ipv6_prefix"`
+	NetworkBorderGroup string `json:"network_border_group"`
+	Region             string `json:"region"`
+	Service            string `json:"service"`
+}
+
+type awsIpv6Prefix struct {
+	IpPrefix           string `json:"ipv6_prefix"`
 	NetworkBorderGroup string `json:"network_border_group"`
 	Region             string `json:"region"`
 	Service            string `json:"service"`
 }
 
 type awsIpRanges struct {
-	Prefixes     []awsPrefix `json:prefixes`
-	Ipv6Prefixes []awsPrefix `json:ipv6_prefixes`
+	Ipv4Prefixes []awsIpv4Prefix `json:"prefixes"`
+	Ipv6Prefixes []awsIpv6Prefix `json:"ipv6_prefixes"`
 }
 
 type AwsSource struct {
@@ -62,17 +68,13 @@ func (a *AwsSource) load() error {
 
 	ranges := awsIpRanges{}
 	a.fetch("https://ip-ranges.amazonaws.com/ip-ranges.json", "GET", &ranges)
-	prefixes := ranges.Prefixes
-	if !a.Ipv4Only {
-		prefixes = append(prefixes, ranges.Ipv6Prefixes...)
-	}
 
 	specificBlocks := make(map[string]*Block)
 	genericBlocks := make(map[string]*Block)
 
-	for _, prefix := range prefixes {
+	// TODO: DRY up these for loops?
+	for _, prefix := range ranges.Ipv4Prefixes {
 		value := fmt.Sprintf("AWS/%s/%s", prefix.Service, prefix.Region)
-		// TODO: this doesn't work for ipv6
 		block, err := BlockCreateWithCidr(&prefix.IpPrefix, &value)
 		if err != nil {
 			return err
@@ -84,6 +86,24 @@ func (a *AwsSource) load() error {
 			genericBlocks[block.net.String()] = block
 		} else {
 			specificBlocks[block.net.String()] = block
+		}
+	}
+
+	if !a.Ipv4Only {
+		for _, prefix := range ranges.Ipv6Prefixes {
+			value := fmt.Sprintf("AWS/%s/%s", prefix.Service, prefix.Region)
+			block, err := BlockCreateWithCidr(&prefix.IpPrefix, &value)
+			if err != nil {
+				return err
+			}
+			if prefix.Service == "AMAZON" {
+				// Treat AMAZON service specially, there's lots of duplicates with
+				// a more sepcific service and then generic amazon we only want the
+				// generic when it's not available in a specific
+				genericBlocks[block.net.String()] = block
+			} else {
+				specificBlocks[block.net.String()] = block
+			}
 		}
 	}
 
