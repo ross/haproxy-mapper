@@ -68,6 +68,11 @@ func ip_to_cloud(outfile string, ipv4Only bool, wg *sync.WaitGroup) {
 		log.Fatal(err)
 	}
 
+	gc, err := GcSourceCreate(ipv4Only)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	mapp, err := MapCreate(outfile)
 	if err != nil {
 		log.Fatal("Failed to open map for writing: ", err)
@@ -76,6 +81,7 @@ func ip_to_cloud(outfile string, ipv4Only bool, wg *sync.WaitGroup) {
 
 	sorter := SortingProcessorCreate()
 	sorter.AddSource(aws)
+	sorter.AddSource(gc)
 
 	err = mapp.Consume(sorter)
 	if err != nil {

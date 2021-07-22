@@ -44,7 +44,10 @@ func (a *AwsSource) load() error {
 	a.loaded = true
 
 	ranges := awsIpRanges{}
-	a.httpJson.fetch("https://ip-ranges.amazonaws.com/ip-ranges.json", "GET", &ranges)
+	err := a.httpJson.fetch("https://ip-ranges.amazonaws.com/ip-ranges.json", "GET", &ranges)
+	if err != nil {
+		return err
+	}
 
 	specificBlocks := make(map[string]*Block)
 	genericBlocks := make(map[string]*Block)
