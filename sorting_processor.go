@@ -1,60 +1,63 @@
 package main
 
-import (
-	"sort"
-)
+type sourceAndCurrent struct {
+	source  Source
+	current *Block
+}
 
 type SortingProcessor struct {
-	sources  []Source
-	prepared bool
-	blocks   Blocks
+	sourceAndCurrents []*sourceAndCurrent
 }
 
 func SortingProcessorCreate() *SortingProcessor {
 	return &SortingProcessor{
-		sources:  make([]Source, 0),
-		prepared: false,
-		blocks:   make(Blocks, 0),
+		sourceAndCurrents: make([]*sourceAndCurrent, 0),
 	}
 }
 
 func (s *SortingProcessor) AddSource(source Source) {
-	s.sources = append(s.sources, source)
-}
-
-func (s *SortingProcessor) prepare() error {
-	s.prepared = true
-
-	// TODO: if we make a rule that sources are sorted this can be simplified a
-	// lot and avoid needing to load everything into memory
-	for _, source := range s.sources {
-		block, err := source.Next()
-		for ; block != nil && err == nil; block, err = source.Next() {
-			s.blocks = append(s.blocks, block)
-		}
-		if err != nil {
-			return err
-		}
-	}
-
-	sort.Sort(s.blocks)
-
-	return nil
+	s.sourceAndCurrents = append(s.sourceAndCurrents, &sourceAndCurrent{
+		source:  source,
+		current: nil,
+	})
 }
 
 func (s *SortingProcessor) Next() (*Block, error) {
-	if !s.prepared {
-		if err := s.prepare(); err != nil {
-			return nil, err
+	if len(s.sourceAndCurrents) == 0 {
+		return nil, nil
+	}
+
+	var err error
+	var min *Block
+	var minI int
+	for i, sac := range s.sourceAndCurrents {
+		// Make sure the sac has a current loaded
+		if sac.current == nil {
+			// It should be safe to call next on an empty source, they should
+			// continue to return nil, nil, and sac's current will just stay nil
+			sac.current, err = sac.source.Next()
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		if min == nil {
+			// We don't yet have a min, this one should be it. If it's nil
+			// that'll be Ok, either something will beat it or it'll win and
+			// return nil below
+			min = sac.current
+			minI = i
+		} else if sac.current != nil {
+			// We have a min and a current so see which is less
+			if sac.current.Less(min) {
+				// We have a new min
+				min = sac.current
+				minI = i
+			}
 		}
 	}
 
-	n := len(s.blocks)
-	if n > 0 {
-		block := s.blocks[0]
-		s.blocks = s.blocks[1:n]
-		return block, nil
-	}
-
-	return nil, nil
+	// We have something to return, clear it from its sac
+	s.sourceAndCurrents[minI].current = nil
+	return min, nil
 }

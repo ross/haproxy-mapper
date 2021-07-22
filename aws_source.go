@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"sort"
 	"time"
 )
 
@@ -74,6 +75,8 @@ func (a *AwsSource) load() error {
 		}
 		a.blocks = append(a.blocks, block)
 	}
+
+	sort.Sort(a.blocks)
 
 	return nil
 }

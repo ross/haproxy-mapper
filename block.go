@@ -29,6 +29,14 @@ func BlockCreateWithCidr(cidr *string, value *string) (*Block, error) {
 	}, nil
 }
 
+func (b *Block) Less(other *Block) bool {
+	c := bytes.Compare(b.net.IP, other.net.IP)
+	if c == 0 {
+		return strings.Compare(*b.value, *other.value) == -1
+	}
+	return c == -1
+}
+
 type Blocks []*Block
 
 func (a Blocks) Len() int {
@@ -40,9 +48,5 @@ func (a Blocks) Swap(i, j int) {
 }
 
 func (a Blocks) Less(i, j int) bool {
-	c := bytes.Compare(a[i].net.IP, a[j].net.IP)
-	if c == 0 {
-		return strings.Compare(*a[i].value, *a[j].value) == -1
-	}
-	return c == -1
+	return a[i].Less(a[j])
 }
