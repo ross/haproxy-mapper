@@ -58,3 +58,13 @@ func (m *Map) Write(network *net.IPNet, value *string) error {
 	}
 	return m.buf.WriteByte('\n')
 }
+
+func (m *Map) Consume(source Source) error {
+	net, value, err := source.Next()
+	for ; net != nil && value != nil && err == nil; net, value, err = source.Next() {
+		if len(*value) > 0 {
+			err = m.Write(net, value)
+		}
+	}
+	return err
+}
