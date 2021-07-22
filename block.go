@@ -30,6 +30,18 @@ func BlockCreateWithCidr(cidr *string, value *string) (*Block, error) {
 }
 
 func (b *Block) Less(other *Block) bool {
+	if b.net.IP.To4() == nil {
+		// We're v6
+		if other.net.IP.To4() != nil {
+			// They're v4, they're "less"
+			return false
+		}
+		// both v6 stuff below will apply
+	} else if other.net.IP.To4() == nil {
+		// We're v4 and they're v6, we're less
+		return true
+	}
+
 	c := bytes.Compare(b.net.IP, other.net.IP)
 	if c == 0 {
 		return strings.Compare(*b.value, *other.value) == -1
