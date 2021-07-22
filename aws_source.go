@@ -66,6 +66,10 @@ func (a *AwsSource) load() error {
 	if !a.Ipv4Only {
 		prefixes = append(prefixes, ranges.Ipv6Prefixes...)
 	}
+
+	specificBlocks := make(map[string]*Block)
+	genericBlocks := make(map[string]*Block)
+
 	for _, prefix := range prefixes {
 		value := fmt.Sprintf("AWS/%s/%s", prefix.Service, prefix.Region)
 		// TODO: this doesn't work for ipv6
@@ -73,7 +77,25 @@ func (a *AwsSource) load() error {
 		if err != nil {
 			return err
 		}
+		if prefix.Service == "AMAZON" {
+			// Treat AMAZON service specially, there's lots of duplicates with
+			// a more sepcific service and then generic amazon we only want the
+			// generic when it's not available in a specific
+			genericBlocks[block.net.String()] = block
+		} else {
+			specificBlocks[block.net.String()] = block
+		}
+	}
+
+	for _, block := range specificBlocks {
+		// We want all the specifics
 		a.blocks = append(a.blocks, block)
+	}
+	for net, block := range genericBlocks {
+		if _, ok := specificBlocks[net]; !ok {
+			// And the generics that don't exist as specifics
+			a.blocks = append(a.blocks, block)
+		}
 	}
 
 	sort.Sort(a.blocks)
