@@ -87,7 +87,7 @@ func main() {
 	var wg sync.WaitGroup
 
 	outdir := "/tmp/mapper"
-	ipv4Only := true
+	ipv4Only := false
 
 	go ip_to_location("tmp/GeoLite2-City.mmdb", path.Join(outdir, "ip_to_location"), ipv4Only, &wg)
 	wg.Add(1)

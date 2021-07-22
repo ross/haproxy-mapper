@@ -1,12 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"sort"
-	"time"
 )
 
 type awsIpv4Prefix struct {
@@ -30,44 +26,25 @@ type awsIpRanges struct {
 
 type AwsSource struct {
 	Ipv4Only bool
-	client   http.Client
 	blocks   Blocks
 	loaded   bool
+	httpJson HttpJson
 }
 
 func AwsSourceCreate(ipv4Only bool) (*AwsSource, error) {
 	return &AwsSource{
 		Ipv4Only: ipv4Only,
-		client: http.Client{
-			Timeout: time.Duration(10 * time.Second),
-		},
-		blocks: make(Blocks, 0),
-		loaded: false,
+		blocks:   make(Blocks, 0),
+		loaded:   false,
+		httpJson: HttpJsonCreate(),
 	}, nil
-}
-
-func (a *AwsSource) fetch(url string, method string, out interface{}) error {
-	req, err := http.NewRequest(method, url, nil)
-	req.Header.Add("user-agent", "haproxy-mapper")
-	resp, err := a.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	return json.Unmarshal(body, &out)
 }
 
 func (a *AwsSource) load() error {
 	a.loaded = true
 
 	ranges := awsIpRanges{}
-	a.fetch("https://ip-ranges.amazonaws.com/ip-ranges.json", "GET", &ranges)
+	a.httpJson.fetch("https://ip-ranges.amazonaws.com/ip-ranges.json", "GET", &ranges)
 
 	specificBlocks := make(map[string]*Block)
 	genericBlocks := make(map[string]*Block)
