@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"time"
 )
@@ -22,27 +21,21 @@ type awsIpRanges struct {
 	Ipv6Prefixes []awsPrefix `json:ipv6_prefixes`
 }
 
-// TODO: should we formalize this and return it everywhere rather than sep net and value?
-type block struct {
-	net   *net.IPNet
-	value *string
-}
-
 type AwsSource struct {
 	Ipv4Only bool
 	client   http.Client
-	blocks   []block
+	blocks   []*Block
 	loaded   bool
 }
 
 func AwsSourceCreate(ipv4Only bool) (*AwsSource, error) {
 	return &AwsSource{
 		Ipv4Only: ipv4Only,
-		client:   http.Client{
+		client: http.Client{
 			Timeout: time.Duration(10 * time.Second),
 		},
-		blocks:   make([]block, 0),
-		loaded:   false,
+		blocks: make([]*Block, 0),
+		loaded: false,
 	}, nil
 }
 
@@ -73,25 +66,23 @@ func (a *AwsSource) load() error {
 		prefixes = append(prefixes, ranges.Ipv6Prefixes...)
 	}
 	for _, prefix := range prefixes {
-		_, net, err := net.ParseCIDR(prefix.IpPrefix)
+		value := fmt.Sprintf("AWS/%s/%s", prefix.Service, prefix.Region)
+		// TODO: this doesn't work for ipv6
+		block, err := BlockCreateWithCidr(&prefix.IpPrefix, &value)
 		if err != nil {
 			return err
 		}
-		value := fmt.Sprintf("AWS/%s/%s", prefix.Service, prefix.Region)
-		a.blocks = append(a.blocks, block{
-			net:   net,
-			value: &value,
-		})
+		a.blocks = append(a.blocks, block)
 	}
 
 	return nil
 }
 
-func (a *AwsSource) Next() (*net.IPNet, *string, error) {
+func (a *AwsSource) Next() (*Block, error) {
 	if !a.loaded {
 		err := a.load()
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	}
 
@@ -99,8 +90,8 @@ func (a *AwsSource) Next() (*net.IPNet, *string, error) {
 	if n > 0 {
 		block := a.blocks[0]
 		a.blocks = a.blocks[1:n]
-		return block.net, block.value, nil
+		return block, nil
 	}
 
-	return nil, nil, nil
+	return nil, nil
 }

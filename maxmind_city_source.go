@@ -35,12 +35,12 @@ func NewCities(networks *maxminddb.Networks) (*Cities, error) {
 	}, nil
 }
 
-func (c *Cities) Next() (*net.IPNet, *string, error) {
+func (c *Cities) Next() (*Block, error) {
 
 	if c.networks.Next() {
 		net, err := c.networks.Network(&c.record)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		location := ""
 		if len(c.record.Continent.Code) > 0 {
@@ -56,10 +56,10 @@ func (c *Cities) Next() (*net.IPNet, *string, error) {
 				location = c.record.Continent.Code
 			}
 		}
-		return net, &location, nil
+		return BlockCreate(net, &location), nil
 	}
 
-	return nil, nil, nil
+	return nil, nil
 }
 
 type MaxMindCitySource struct {

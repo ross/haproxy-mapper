@@ -1,9 +1,5 @@
 package main
 
-import (
-	"net"
-)
-
 type SortingProcessor struct {
 	sources []Source
 	current Source
@@ -24,14 +20,14 @@ func (s *SortingProcessor) AddSource(source Source) {
 	}
 }
 
-func (s *SortingProcessor) Next() (*net.IPNet, *string, error) {
+func (s *SortingProcessor) Next() (*Block, error) {
 	// TODO: actually sort
-	net, value, err := s.current.Next()
-	if (net == nil || value == nil) && len(s.sources) > 0 {
+	block, err := s.current.Next()
+	if block == nil && len(s.sources) > 0 {
 		s.current = s.sources[0]
 		s.sources = s.sources[1:len(s.sources)]
-		net, value, err = s.current.Next()
+		block, err = s.current.Next()
 	}
 
-	return net, value, err
+	return block, err
 }

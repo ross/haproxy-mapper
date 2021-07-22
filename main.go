@@ -2,13 +2,12 @@ package main
 
 import (
 	"log"
-	"net"
 	"path"
 	"sync"
 )
 
 type Source interface {
-	Next() (*net.IPNet, *string, error)
+	Next() (*Block, error)
 }
 
 func ip_to_location(src, outfile string, ipv4Only bool, wg *sync.WaitGroup) {

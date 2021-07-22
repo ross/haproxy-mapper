@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"errors"
-	"net"
 	"os"
 )
 
@@ -42,28 +41,28 @@ func (m *Map) Close() error {
 	return err
 }
 
-func (m *Map) Write(network *net.IPNet, value *string) error {
+func (m *Map) Write(block *Block) error {
 	if m.buf == nil {
 		return errors.New("Write called on closed Map")
 	}
 
-	if _, err := m.buf.WriteString(network.String()); err != nil {
+	if _, err := m.buf.WriteString(block.net.String()); err != nil {
 		return err
 	}
 	if err := m.buf.WriteByte(' '); err != nil {
 		return err
 	}
-	if _, err := m.buf.WriteString(*value); err != nil {
+	if _, err := m.buf.WriteString(*block.value); err != nil {
 		return err
 	}
 	return m.buf.WriteByte('\n')
 }
 
 func (m *Map) Consume(source Source) error {
-	net, value, err := source.Next()
-	for ; net != nil && value != nil && err == nil; net, value, err = source.Next() {
-		if len(*value) > 0 {
-			err = m.Write(net, value)
+	block, err := source.Next()
+	for ; block != nil && err == nil; block, err = source.Next() {
+		if len(*block.value) > 0 {
+			err = m.Write(block)
 		}
 	}
 	return err

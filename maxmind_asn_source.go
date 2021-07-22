@@ -24,19 +24,19 @@ func NewAsns(networks *maxminddb.Networks) (*Asns, error) {
 	}, nil
 }
 
-func (c *Asns) Next() (*net.IPNet, *string, error) {
+func (c *Asns) Next() (*Block, error) {
 
 	if c.networks.Next() {
 		net, err := c.networks.Network(&c.record)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		asn := fmt.Sprintf("AS%d", c.record.Asn)
 
-		return net, &asn, nil
+		return BlockCreate(net, &asn), nil
 	}
 
-	return nil, nil, nil
+	return nil, nil
 }
 
 type MaxMindAsnSource struct {
