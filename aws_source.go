@@ -24,7 +24,7 @@ type awsIpRanges struct {
 type AwsSource struct {
 	Ipv4Only bool
 	client   http.Client
-	blocks   []*Block
+	blocks   Blocks
 	loaded   bool
 }
 
@@ -34,7 +34,7 @@ func AwsSourceCreate(ipv4Only bool) (*AwsSource, error) {
 		client: http.Client{
 			Timeout: time.Duration(10 * time.Second),
 		},
-		blocks: make([]*Block, 0),
+		blocks: make(Blocks, 0),
 		loaded: false,
 	}, nil
 }

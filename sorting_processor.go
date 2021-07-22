@@ -1,33 +1,60 @@
 package main
 
+import (
+	"sort"
+)
+
 type SortingProcessor struct {
-	sources []Source
-	current Source
+	sources  []Source
+	prepared bool
+	blocks   Blocks
 }
 
 func SortingProcessorCreate() *SortingProcessor {
 	return &SortingProcessor{
-		sources: make([]Source, 0),
-		current: nil,
+		sources:  make([]Source, 0),
+		prepared: false,
+		blocks:   make(Blocks, 0),
 	}
 }
 
 func (s *SortingProcessor) AddSource(source Source) {
-	if s.current == nil {
-		s.current = source
-	} else {
-		s.sources = append(s.sources, source)
+	s.sources = append(s.sources, source)
+}
+
+func (s *SortingProcessor) prepare() error {
+	s.prepared = true
+
+	// TODO: if we make a rule that sources are sorted this can be simplified a
+	// lot and avoid needing to load everything into memory
+	for _, source := range s.sources {
+		block, err := source.Next()
+		for ; block != nil && err == nil; block, err = source.Next() {
+			s.blocks = append(s.blocks, block)
+		}
+		if err != nil {
+			return err
+		}
 	}
+
+	sort.Sort(s.blocks)
+
+	return nil
 }
 
 func (s *SortingProcessor) Next() (*Block, error) {
-	// TODO: actually sort
-	block, err := s.current.Next()
-	if block == nil && len(s.sources) > 0 {
-		s.current = s.sources[0]
-		s.sources = s.sources[1:len(s.sources)]
-		block, err = s.current.Next()
+	if !s.prepared {
+		if err := s.prepare(); err != nil {
+			return nil, err
+		}
 	}
 
-	return block, err
+	n := len(s.blocks)
+	if n > 0 {
+		block := s.blocks[0]
+		s.blocks = s.blocks[1:n]
+		return block, nil
+	}
+
+	return nil, nil
 }
