@@ -73,6 +73,11 @@ func ip_to_provider(outfile string, ipv4Only bool, wg *sync.WaitGroup) {
 		log.Fatal(err)
 	}
 
+	cloudflare, err := CloudflareSourceCreate(ipv4Only)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	fastly, err := FastlySourceCreate(ipv4Only)
 	if err != nil {
 		log.Fatal(err)
@@ -92,6 +97,7 @@ func ip_to_provider(outfile string, ipv4Only bool, wg *sync.WaitGroup) {
 	sorter := SortingProcessorCreate()
 	sorter.AddSource(aws)
 	sorter.AddSource(azure)
+	sorter.AddSource(cloudflare)
 	sorter.AddSource(fastly)
 	sorter.AddSource(gc)
 
