@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"sort"
 )
 
@@ -43,7 +42,7 @@ func (g *GcSource) load() error {
 
 	// TODO: DRY up these for loops?
 	for _, prefix := range ranges.Prefixes {
-		value := fmt.Sprintf("GC/%s/%s", prefix.Service, prefix.Scope)
+		value := "GC/" + prefix.Service + "/" + prefix.Scope
 		cidr := prefix.Ipv4Prefix
 		if cidr == "" {
 			if g.Ipv4Only {

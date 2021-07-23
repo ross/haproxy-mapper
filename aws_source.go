@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"sort"
 )
 
@@ -52,7 +51,7 @@ func (a *AwsSource) load() error {
 
 	// TODO: DRY up these for loops?
 	for _, prefix := range ranges.Ipv4Prefixes {
-		value := fmt.Sprintf("AWS/%s/%s", prefix.Service, prefix.Region)
+		value := "AWS/" + prefix.Service + "/" + prefix.Region
 		block, err := BlockCreateWithCidr(&prefix.IpPrefix, &value)
 		if err != nil {
 			return err
@@ -69,7 +68,7 @@ func (a *AwsSource) load() error {
 
 	if !a.Ipv4Only {
 		for _, prefix := range ranges.Ipv6Prefixes {
-			value := fmt.Sprintf("AWS/%s/%s", prefix.Service, prefix.Region)
+			value := "AWS/" + prefix.Service + "/" + prefix.Region
 			block, err := BlockCreateWithCidr(&prefix.IpPrefix, &value)
 			if err != nil {
 				return err

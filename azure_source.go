@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"regexp"
 	"sort"
 	"strings"
@@ -73,7 +72,7 @@ func (a *AzureSource) load() error {
 			// If we don't have those fields this is just garbage/duplicate data
 			continue
 		}
-		info := fmt.Sprintf("Azure/%s/%s", value.Properties.SystemService, value.Properties.Region)
+		info := "Azure/" + value.Properties.SystemService + "/" + value.Properties.Region
 		for _, cidr := range value.Properties.AddressPrefixes {
 			if strings.Index(cidr, ":") != -1 && a.Ipv4Only {
 				// Ipv6 addr and we aren't interested

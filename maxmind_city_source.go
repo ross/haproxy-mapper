@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net"
 
@@ -46,11 +45,9 @@ func (c *Cities) Next() (*Block, error) {
 		if len(c.record.Continent.Code) > 0 {
 			if len(c.record.Country.ISOCode) > 0 {
 				if city, ok := c.record.City.Names["en"]; ok && len(city) > 0 {
-					location = fmt.Sprintf("%s-%s-%s", c.record.Continent.Code,
-						c.record.Country.ISOCode, city)
+					location = c.record.Continent.Code + "-" + c.record.Country.ISOCode + "-" + city
 				} else {
-					location = fmt.Sprintf("%s-%s", c.record.Continent.Code,
-						c.record.Country.ISOCode)
+					location = c.record.Continent.Code + "-" + c.record.Country.ISOCode
 				}
 			} else {
 				location = c.record.Continent.Code
