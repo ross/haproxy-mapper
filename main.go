@@ -60,7 +60,7 @@ func ip_to_asn(src, outfile string, ipv4Only bool, wg *sync.WaitGroup) {
 	}
 }
 
-func ip_to_cloud(outfile string, ipv4Only bool, wg *sync.WaitGroup) {
+func ip_to_provider(outfile string, ipv4Only bool, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	aws, err := AwsSourceCreate(ipv4Only)
@@ -69,6 +69,11 @@ func ip_to_cloud(outfile string, ipv4Only bool, wg *sync.WaitGroup) {
 	}
 
 	azure, err := AzureSourceCreate(ipv4Only)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fastly, err := FastlySourceCreate(ipv4Only)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -87,6 +92,7 @@ func ip_to_cloud(outfile string, ipv4Only bool, wg *sync.WaitGroup) {
 	sorter := SortingProcessorCreate()
 	sorter.AddSource(aws)
 	sorter.AddSource(azure)
+	sorter.AddSource(fastly)
 	sorter.AddSource(gc)
 
 	err = mapp.Consume(sorter)
@@ -105,7 +111,7 @@ func main() {
 	wg.Add(1)
 	go ip_to_asn("tmp/GeoLite2-ASN.mmdb", path.Join(outdir, "ip_to_asn"), ipv4Only, &wg)
 	wg.Add(1)
-	go ip_to_cloud(path.Join(outdir, "ip_to_cloud"), ipv4Only, &wg)
+	go ip_to_provider(path.Join(outdir, "ip_to_provider"), ipv4Only, &wg)
 	wg.Add(1)
 
 	wg.Wait()
