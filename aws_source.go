@@ -44,7 +44,7 @@ func (a *AwsSource) load() error {
 	a.loaded = true
 
 	ranges := awsIpRanges{}
-	err := a.httpJson.fetch("https://ip-ranges.amazonaws.com/ip-ranges.json", "GET", &ranges)
+	err := a.httpJson.Fetch("https://ip-ranges.amazonaws.com/ip-ranges.json", "GET", &ranges)
 	if err != nil {
 		return err
 	}

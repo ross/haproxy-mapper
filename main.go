@@ -68,6 +68,11 @@ func ip_to_cloud(outfile string, ipv4Only bool, wg *sync.WaitGroup) {
 		log.Fatal(err)
 	}
 
+	azure, err := AzureSourceCreate(ipv4Only)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	gc, err := GcSourceCreate(ipv4Only)
 	if err != nil {
 		log.Fatal(err)
@@ -81,6 +86,7 @@ func ip_to_cloud(outfile string, ipv4Only bool, wg *sync.WaitGroup) {
 
 	sorter := SortingProcessorCreate()
 	sorter.AddSource(aws)
+	sorter.AddSource(azure)
 	sorter.AddSource(gc)
 
 	err = mapp.Consume(sorter)

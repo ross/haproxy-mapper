@@ -36,7 +36,7 @@ func (g *GcSource) load() error {
 	g.loaded = true
 
 	ranges := gcIpRanges{}
-	err := g.httpJson.fetch("https://www.gstatic.com/ipranges/cloud.json", "GET", &ranges)
+	err := g.httpJson.Fetch("https://www.gstatic.com/ipranges/cloud.json", "GET", &ranges)
 	if err != nil {
 		return err
 	}
