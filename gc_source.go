@@ -1,9 +1,5 @@
 package main
 
-import (
-	"sort"
-)
-
 type gcPrefix struct {
 	Ipv4Prefix string `json:"ipv4Prefix"`
 	Ipv6Prefix string `json:"ipv6Prefix"`
@@ -16,36 +12,28 @@ type gcIpRanges struct {
 }
 
 type GcSource struct {
-	Ipv4Only bool
-	blocks   Blocks
-	loaded   bool
 	httpJson HttpJson
 }
 
 func GcSourceCreate(ipv4Only bool) (*GcSource, error) {
 	return &GcSource{
-		Ipv4Only: ipv4Only,
-		blocks:   make(Blocks, 0),
-		loaded:   false,
 		httpJson: HttpJsonCreate(),
 	}, nil
 }
 
-func (g *GcSource) load() error {
-	g.loaded = true
-
+func (g *GcSource) Load(ipv4Only bool) (Blocks, error) {
 	ranges := gcIpRanges{}
 	err := g.httpJson.Fetch("https://www.gstatic.com/ipranges/cloud.json", "GET", &ranges)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	// TODO: DRY up these for loops?
+	blocks := make(Blocks, 0)
 	for _, prefix := range ranges.Prefixes {
 		value := "GC/" + prefix.Service + "/" + prefix.Scope
 		cidr := prefix.Ipv4Prefix
 		if cidr == "" {
-			if g.Ipv4Only {
+			if ipv4Only {
 				// Only interested in v4
 				continue
 			}
@@ -53,30 +41,10 @@ func (g *GcSource) load() error {
 		}
 		block, err := BlockCreateWithCidr(&cidr, &value)
 		if err != nil {
-			return err
-		}
-		g.blocks = append(g.blocks, block)
-	}
-
-	sort.Sort(g.blocks)
-
-	return nil
-}
-
-func (g *GcSource) Next() (*Block, error) {
-	if !g.loaded {
-		err := g.load()
-		if err != nil {
 			return nil, err
 		}
+		blocks = append(blocks, block)
 	}
 
-	n := len(g.blocks)
-	if n > 0 {
-		block := g.blocks[0]
-		g.blocks = g.blocks[1:n]
-		return block, nil
-	}
-
-	return nil, nil
+	return blocks, nil
 }

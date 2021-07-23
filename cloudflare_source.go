@@ -1,7 +1,6 @@
 package main
 
 import (
-	"sort"
 	"strings"
 )
 
@@ -11,26 +10,21 @@ type cloudflarePublicIpList struct {
 }
 
 type CloudflareSource struct {
-	Ipv4Only bool
-	blocks   Blocks
-	loaded   bool
 	httpJson HttpJson
 }
 
-func CloudflareSourceCreate(ipv4Only bool) (*CloudflareSource, error) {
+func CloudflareSourceCreate() (*CloudflareSource, error) {
 	return &CloudflareSource{
-		Ipv4Only: ipv4Only,
-		blocks:   make(Blocks, 0),
-		loaded:   false,
 		httpJson: HttpJsonCreate(),
 	}, nil
 }
 
-func (c *CloudflareSource) loadUrl(url string) error {
+func (c *CloudflareSource) loadUrl(url string) (Blocks, error) {
 	body, err := c.httpJson.FetchBody(url, "GET")
 	if err != nil {
-		return err
+		return nil, err
 	}
+	blocks := make(Blocks, 0)
 	value := "Cloudflare"
 	for _, cidr := range strings.Split(string(body), "\n") {
 		if len(cidr) == 0 {
@@ -38,48 +32,30 @@ func (c *CloudflareSource) loadUrl(url string) error {
 		}
 		block, err := BlockCreateWithCidr(&cidr, &value)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		c.blocks = append(c.blocks, block)
+		blocks = append(blocks, block)
 	}
 
-	return nil
+	return blocks, nil
 }
 
-func (c *CloudflareSource) load() error {
-	c.loaded = true
+func (c *CloudflareSource) Load(ipv4Only bool) (Blocks, error) {
 
-	err := c.loadUrl("https://www.cloudflare.com/ips-v4")
+	blocks := make(Blocks, 0)
+	v4, err := c.loadUrl("https://www.cloudflare.com/ips-v4")
 	if err != nil {
-		return err
+		return nil, err
 	}
+	blocks = append(blocks, v4...)
 
-	if !c.Ipv4Only {
-		err := c.loadUrl("https://www.cloudflare.com/ips-v6")
-		if err != nil {
-			return err
-		}
-	}
-
-	sort.Sort(c.blocks)
-
-	return nil
-}
-
-func (c *CloudflareSource) Next() (*Block, error) {
-	if !c.loaded {
-		err := c.load()
+	if !ipv4Only {
+		v6, err := c.loadUrl("https://www.cloudflare.com/ips-v6")
 		if err != nil {
 			return nil, err
 		}
+		blocks = append(blocks, v6...)
 	}
 
-	n := len(c.blocks)
-	if n > 0 {
-		block := c.blocks[0]
-		c.blocks = c.blocks[1:n]
-		return block, nil
-	}
-
-	return nil, nil
+	return blocks, nil
 }

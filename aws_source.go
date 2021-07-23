@@ -1,9 +1,5 @@
 package main
 
-import (
-	"sort"
-)
-
 type awsIpPrefix struct {
 	// Annoyingly the aws json has two different ip prefixes, with the v6 added
 	// to a single field in one of them. This ~hack lets us have a single type
@@ -29,28 +25,20 @@ type awsIpRanges struct {
 }
 
 type AwsSource struct {
-	Ipv4Only bool
-	blocks   Blocks
-	loaded   bool
 	httpJson HttpJson
 }
 
-func AwsSourceCreate(ipv4Only bool) (*AwsSource, error) {
+func AwsSourceCreate() (*AwsSource, error) {
 	return &AwsSource{
-		Ipv4Only: ipv4Only,
-		blocks:   make(Blocks, 0),
-		loaded:   false,
 		httpJson: HttpJsonCreate(),
 	}, nil
 }
 
-func (a *AwsSource) load() error {
-	a.loaded = true
-
+func (a *AwsSource) Load(ipv4Only bool) (Blocks, error) {
 	ranges := awsIpRanges{}
 	err := a.httpJson.Fetch("https://ip-ranges.amazonaws.com/ip-ranges.json", "GET", &ranges)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	specificBlocks := make(map[string]*Block)
@@ -58,7 +46,7 @@ func (a *AwsSource) load() error {
 
 	prefixes := make([]awsIpPrefix, 0)
 	prefixes = append(prefixes, ranges.Ipv4Prefixes...)
-	if !a.Ipv4Only {
+	if !ipv4Only {
 		prefixes = append(prefixes, ranges.Ipv6Prefixes...)
 	}
 	for _, prefix := range prefixes {
@@ -66,7 +54,7 @@ func (a *AwsSource) load() error {
 		cidr := prefix.IpPrefix()
 		block, err := BlockCreateWithCidr(&cidr, &value)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if prefix.Service == "AMAZON" {
 			// Treat AMAZON service specially, there's lots of duplicates with
@@ -78,36 +66,17 @@ func (a *AwsSource) load() error {
 		}
 	}
 
+	blocks := make(Blocks, 0)
 	for _, block := range specificBlocks {
 		// We want all the specifics
-		a.blocks = append(a.blocks, block)
+		blocks = append(blocks, block)
 	}
 	for net, block := range genericBlocks {
 		if _, ok := specificBlocks[net]; !ok {
 			// And the generics that don't exist as specifics
-			a.blocks = append(a.blocks, block)
+			blocks = append(blocks, block)
 		}
 	}
 
-	sort.Sort(a.blocks)
-
-	return nil
-}
-
-func (a *AwsSource) Next() (*Block, error) {
-	if !a.loaded {
-		err := a.load()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	n := len(a.blocks)
-	if n > 0 {
-		block := a.blocks[0]
-		a.blocks = a.blocks[1:n]
-		return block, nil
-	}
-
-	return nil, nil
+	return blocks, nil
 }

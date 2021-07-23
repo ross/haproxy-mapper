@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"regexp"
-	"sort"
 	"strings"
 )
 
@@ -23,23 +22,16 @@ type azureValues struct {
 }
 
 type AzureSource struct {
-	Ipv4Only bool
-	blocks   Blocks
-	loaded   bool
 	httpJson HttpJson
 }
 
-func AzureSourceCreate(ipv4Only bool) (*AzureSource, error) {
+func AzureSourceCreate() (*AzureSource, error) {
 	return &AzureSource{
-		Ipv4Only: ipv4Only,
-		blocks:   make(Blocks, 0),
-		loaded:   false,
 		httpJson: HttpJsonCreate(),
 	}, nil
 }
 
-func (a *AzureSource) load() error {
-	a.loaded = true
+func (a *AzureSource) Load(ipv4Only bool) (Blocks, error) {
 
 	// WARNING: hack incoming... Azure doesn't have a non-authenticated way to
 	// grab its list of IP addresses via an api call, but you can visit a
@@ -50,23 +42,24 @@ func (a *AzureSource) load() error {
 	url := "https://www.microsoft.com/en-us/download/confirmation.aspx?id=56519"
 	bodyBytes, err := a.httpJson.FetchBody(url, "GET")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	body := string(bodyBytes[:])
 
 	r := regexp.MustCompile(`click here to download.*href="(?P<url>[^"]+)"`)
 	matches := r.FindStringSubmatch(body)
 	if len(matches) != 2 {
-		return errors.New("Failed to find the download url (hacky)")
+		return nil, errors.New("Failed to find the download url (hacky)")
 	}
 	url = matches[1]
 
 	values := azureValues{}
 	err = a.httpJson.Fetch(url, "GET", &values)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	blocks := make(Blocks, 0)
 	for _, value := range values.Values {
 		if value.Properties.SystemService == "" || value.Properties.Region == "" {
 			// If we don't have those fields this is just garbage/duplicate data
@@ -74,37 +67,17 @@ func (a *AzureSource) load() error {
 		}
 		info := "Azure/" + value.Properties.SystemService + "/" + value.Properties.Region
 		for _, cidr := range value.Properties.AddressPrefixes {
-			if strings.Index(cidr, ":") != -1 && a.Ipv4Only {
+			if strings.Index(cidr, ":") != -1 && ipv4Only {
 				// Ipv6 addr and we aren't interested
 				continue
 			}
 			block, err := BlockCreateWithCidr(&cidr, &info)
 			if err != nil {
-				return err
+				return nil, err
 			}
-			a.blocks = append(a.blocks, block)
+			blocks = append(blocks, block)
 		}
 	}
 
-	sort.Sort(a.blocks)
-
-	return nil
-}
-
-func (a *AzureSource) Next() (*Block, error) {
-	if !a.loaded {
-		err := a.load()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	n := len(a.blocks)
-	if n > 0 {
-		block := a.blocks[0]
-		a.blocks = a.blocks[1:n]
-		return block, nil
-	}
-
-	return nil, nil
+	return blocks, nil
 }

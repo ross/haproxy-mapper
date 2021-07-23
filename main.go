@@ -63,22 +63,22 @@ func ip_to_asn(src, outfile string, ipv4Only bool, wg *sync.WaitGroup) {
 func ip_to_provider(outfile string, ipv4Only bool, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	aws, err := AwsSourceCreate(ipv4Only)
+	aws, err := AwsSourceCreate()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	azure, err := AzureSourceCreate(ipv4Only)
+	azure, err := AzureSourceCreate()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	cloudflare, err := CloudflareSourceCreate(ipv4Only)
+	cloudflare, err := CloudflareSourceCreate()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fastly, err := FastlySourceCreate(ipv4Only)
+	fastly, err := FastlySourceCreate()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -95,11 +95,11 @@ func ip_to_provider(outfile string, ipv4Only bool, wg *sync.WaitGroup) {
 	defer mapp.Close()
 
 	sorter := SortingProcessorCreate()
-	sorter.AddSource(aws)
-	sorter.AddSource(azure)
-	sorter.AddSource(cloudflare)
-	sorter.AddSource(fastly)
-	sorter.AddSource(gc)
+	sorter.AddSource(BlockSourceCreate(aws, ipv4Only))
+	sorter.AddSource(BlockSourceCreate(azure, ipv4Only))
+	sorter.AddSource(BlockSourceCreate(cloudflare, ipv4Only))
+	sorter.AddSource(BlockSourceCreate(fastly, ipv4Only))
+	sorter.AddSource(BlockSourceCreate(gc, ipv4Only))
 
 	err = mapp.Consume(sorter)
 	if err != nil {
