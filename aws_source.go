@@ -4,21 +4,28 @@ import (
 	"sort"
 )
 
-type awsIpv4Prefix struct {
-	IpPrefix string `json:"ip_prefix"`
-	Region   string `json:"region"`
-	Service  string `json:"service"`
+type awsIpPrefix struct {
+	// Annoyingly the aws json has two different ip prefixes, with the v6 added
+	// to a single field in one of them. This ~hack lets us have a single type
+	// that works for both. We won't access the properties directly and instead
+	// will use the method to grab the one that applies. That will allow the
+	// code that deals with these to be DRY.
+	Ipv4Prefix string `json:"ip_prefix"`
+	Ipv6Prefix string `json:"ipv6_prefix"`
+	Region     string `json:"region"`
+	Service    string `json:"service"`
 }
 
-type awsIpv6Prefix struct {
-	IpPrefix string `json:"ipv6_prefix"`
-	Region   string `json:"region"`
-	Service  string `json:"service"`
+func (a *awsIpPrefix) IpPrefix() string {
+	if len(a.Ipv4Prefix) == 0 {
+		return a.Ipv6Prefix
+	}
+	return a.Ipv4Prefix
 }
 
 type awsIpRanges struct {
-	Ipv4Prefixes []awsIpv4Prefix `json:"prefixes"`
-	Ipv6Prefixes []awsIpv6Prefix `json:"ipv6_prefixes"`
+	Ipv4Prefixes []awsIpPrefix `json:"prefixes"`
+	Ipv6Prefixes []awsIpPrefix `json:"ipv6_prefixes"`
 }
 
 type AwsSource struct {
@@ -49,10 +56,15 @@ func (a *AwsSource) load() error {
 	specificBlocks := make(map[string]*Block)
 	genericBlocks := make(map[string]*Block)
 
-	// TODO: DRY up these for loops?
-	for _, prefix := range ranges.Ipv4Prefixes {
+	prefixes := make([]awsIpPrefix, 0)
+	prefixes = append(prefixes, ranges.Ipv4Prefixes...)
+	if !a.Ipv4Only {
+		prefixes = append(prefixes, ranges.Ipv6Prefixes...)
+	}
+	for _, prefix := range prefixes {
 		value := "AWS/" + prefix.Service + "/" + prefix.Region
-		block, err := BlockCreateWithCidr(&prefix.IpPrefix, &value)
+		cidr := prefix.IpPrefix()
+		block, err := BlockCreateWithCidr(&cidr, &value)
 		if err != nil {
 			return err
 		}
@@ -63,24 +75,6 @@ func (a *AwsSource) load() error {
 			genericBlocks[block.net.String()] = block
 		} else {
 			specificBlocks[block.net.String()] = block
-		}
-	}
-
-	if !a.Ipv4Only {
-		for _, prefix := range ranges.Ipv6Prefixes {
-			value := "AWS/" + prefix.Service + "/" + prefix.Region
-			block, err := BlockCreateWithCidr(&prefix.IpPrefix, &value)
-			if err != nil {
-				return err
-			}
-			if prefix.Service == "AMAZON" {
-				// Treat AMAZON service specially, there's lots of duplicates with
-				// a more sepcific service and then generic amazon we only want the
-				// generic when it's not available in a specific
-				genericBlocks[block.net.String()] = block
-			} else {
-				specificBlocks[block.net.String()] = block
-			}
 		}
 	}
 
