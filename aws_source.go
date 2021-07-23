@@ -6,17 +6,15 @@ import (
 )
 
 type awsIpv4Prefix struct {
-	IpPrefix           string `json:"ip_prefix"`
-	NetworkBorderGroup string `json:"network_border_group"`
-	Region             string `json:"region"`
-	Service            string `json:"service"`
+	IpPrefix string `json:"ip_prefix"`
+	Region   string `json:"region"`
+	Service  string `json:"service"`
 }
 
 type awsIpv6Prefix struct {
-	IpPrefix           string `json:"ipv6_prefix"`
-	NetworkBorderGroup string `json:"network_border_group"`
-	Region             string `json:"region"`
-	Service            string `json:"service"`
+	IpPrefix string `json:"ipv6_prefix"`
+	Region   string `json:"region"`
+	Service  string `json:"service"`
 }
 
 type awsIpRanges struct {
