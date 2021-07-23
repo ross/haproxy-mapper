@@ -5,24 +5,24 @@ type sourceAndCurrent struct {
 	current *Block
 }
 
-type SortingProcessor struct {
+type MergingProcessor struct {
 	sourceAndCurrents []*sourceAndCurrent
 }
 
-func SortingProcessorCreate() *SortingProcessor {
-	return &SortingProcessor{
+func MergingProcessorCreate() *MergingProcessor {
+	return &MergingProcessor{
 		sourceAndCurrents: make([]*sourceAndCurrent, 0),
 	}
 }
 
-func (s *SortingProcessor) AddSource(source Source) {
+func (s *MergingProcessor) AddSource(source Source) {
 	s.sourceAndCurrents = append(s.sourceAndCurrents, &sourceAndCurrent{
 		source:  source,
 		current: nil,
 	})
 }
 
-func (s *SortingProcessor) Next() (*Block, error) {
+func (s *MergingProcessor) Next() (*Block, error) {
 	if len(s.sourceAndCurrents) == 0 {
 		return nil, nil
 	}

@@ -94,7 +94,7 @@ func ip_to_provider(outfile string, ipv4Only bool, wg *sync.WaitGroup) {
 	}
 	defer mapp.Close()
 
-	sorter := SortingProcessorCreate()
+	sorter := MergingProcessorCreate()
 	sorter.AddSource(BlockSourceCreate(aws, ipv4Only))
 	sorter.AddSource(BlockSourceCreate(azure, ipv4Only))
 	sorter.AddSource(BlockSourceCreate(cloudflare, ipv4Only))
