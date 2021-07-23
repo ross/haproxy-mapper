@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"net"
 
 	maxminddb "github.com/oschwald/maxminddb-golang"
@@ -68,7 +67,7 @@ type MaxMindCitySource struct {
 func MaxMindCitySourceCreate(filename string, ipv4Only bool) (*MaxMindCitySource, error) {
 	db, err := maxminddb.Open(filename)
 	if err != nil {
-		log.Fatalf("Failed to open maxmind db (%s): %s", filename, err)
+		return nil, err
 	}
 
 	return &MaxMindCitySource{

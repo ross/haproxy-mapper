@@ -20,7 +20,7 @@ func ip_to_location(src, outfile string, ipv4Only bool, wg *sync.WaitGroup) {
 
 	mapp, err := MapCreate(outfile)
 	if err != nil {
-		log.Fatal("Failed to open map for writing: ", err)
+		log.Fatal(err)
 	}
 	defer mapp.Close()
 
@@ -45,7 +45,7 @@ func ip_to_asn(src, outfile string, ipv4Only bool, wg *sync.WaitGroup) {
 
 	mapp, err := MapCreate(outfile)
 	if err != nil {
-		log.Fatal("Failed to open map for writing: ", err)
+		log.Fatal(err)
 	}
 	defer mapp.Close()
 
@@ -90,7 +90,7 @@ func ip_to_provider(outfile string, ipv4Only bool, wg *sync.WaitGroup) {
 
 	mapp, err := MapCreate(outfile)
 	if err != nil {
-		log.Fatal("Failed to open map for writing: ", err)
+		log.Fatal(err)
 	}
 	defer mapp.Close()
 

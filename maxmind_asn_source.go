@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net"
 
 	maxminddb "github.com/oschwald/maxminddb-golang"
@@ -48,7 +47,7 @@ type MaxMindAsnSource struct {
 func MaxMindAsnSourceCreate(filename string, ipv4Only bool) (*MaxMindAsnSource, error) {
 	db, err := maxminddb.Open(filename)
 	if err != nil {
-		log.Fatalf("Failed to open maxmind db (%s): %s", filename, err)
+		return nil, err
 	}
 
 	return &MaxMindAsnSource{
