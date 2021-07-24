@@ -5,17 +5,17 @@ type fastlyPublicIpList struct {
 	Ipv6Addresses []string `json:"ipv6_addresses"`
 }
 
-type FastlySource struct {
+type FastlyLoadable struct {
 	httpJson HttpJson
 }
 
-func FastlySourceCreate() (*FastlySource, error) {
-	return &FastlySource{
+func FastlyLoadableCreate() (*FastlyLoadable, error) {
+	return &FastlyLoadable{
 		httpJson: HttpJsonCreate(),
 	}, nil
 }
 
-func (f *FastlySource) Load(ipv4Only bool) (Blocks, error) {
+func (f *FastlyLoadable) Load(ipv4Only bool) (Blocks, error) {
 	ranges := fastlyPublicIpList{}
 	err := f.httpJson.Fetch("https://api.fastly.com/public-ip-list", "GET", &ranges)
 	if err != nil {

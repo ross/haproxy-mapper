@@ -63,27 +63,27 @@ func ip_to_asn(src, outfile string, ipv4Only bool, wg *sync.WaitGroup) {
 func ip_to_provider(outfile string, ipv4Only bool, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	aws, err := AwsSourceCreate()
+	aws, err := AwsLoadableCreate()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	azure, err := AzureSourceCreate()
+	azure, err := AzureLoadableCreate()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	cloudflare, err := CloudflareSourceCreate()
+	cloudflare, err := CloudflareLoadableCreate()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fastly, err := FastlySourceCreate()
+	fastly, err := FastlyLoadableCreate()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	gc, err := GcSourceCreate(ipv4Only)
+	gc, err := GoogleCloudLoadableCreate(ipv4Only)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -24,17 +24,17 @@ type awsIpRanges struct {
 	Ipv6Prefixes []awsIpPrefix `json:"ipv6_prefixes"`
 }
 
-type AwsSource struct {
+type AwsLoadable struct {
 	httpJson HttpJson
 }
 
-func AwsSourceCreate() (*AwsSource, error) {
-	return &AwsSource{
+func AwsLoadableCreate() (*AwsLoadable, error) {
+	return &AwsLoadable{
 		httpJson: HttpJsonCreate(),
 	}, nil
 }
 
-func (a *AwsSource) Load(ipv4Only bool) (Blocks, error) {
+func (a *AwsLoadable) Load(ipv4Only bool) (Blocks, error) {
 	ranges := awsIpRanges{}
 	err := a.httpJson.Fetch("https://ip-ranges.amazonaws.com/ip-ranges.json", "GET", &ranges)
 	if err != nil {

@@ -21,17 +21,17 @@ type azureValues struct {
 	Values []azureValue `json:"values"`
 }
 
-type AzureSource struct {
+type AzureLoadable struct {
 	httpJson HttpJson
 }
 
-func AzureSourceCreate() (*AzureSource, error) {
-	return &AzureSource{
+func AzureLoadableCreate() (*AzureLoadable, error) {
+	return &AzureLoadable{
 		httpJson: HttpJsonCreate(),
 	}, nil
 }
 
-func (a *AzureSource) Load(ipv4Only bool) (Blocks, error) {
+func (a *AzureLoadable) Load(ipv4Only bool) (Blocks, error) {
 
 	// WARNING: hack incoming... Azure doesn't have a non-authenticated way to
 	// grab its list of IP addresses via an api call, but you can visit a

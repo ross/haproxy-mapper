@@ -9,17 +9,17 @@ type cloudflarePublicIpList struct {
 	Ipv6Addresses []string `json:"ipv6_addresses"`
 }
 
-type CloudflareSource struct {
+type CloudflareLoadable struct {
 	httpJson HttpJson
 }
 
-func CloudflareSourceCreate() (*CloudflareSource, error) {
-	return &CloudflareSource{
+func CloudflareLoadableCreate() (*CloudflareLoadable, error) {
+	return &CloudflareLoadable{
 		httpJson: HttpJsonCreate(),
 	}, nil
 }
 
-func (c *CloudflareSource) loadUrl(url string) (Blocks, error) {
+func (c *CloudflareLoadable) loadUrl(url string) (Blocks, error) {
 	body, err := c.httpJson.FetchBody(url, "GET")
 	if err != nil {
 		return nil, err
@@ -40,7 +40,7 @@ func (c *CloudflareSource) loadUrl(url string) (Blocks, error) {
 	return blocks, nil
 }
 
-func (c *CloudflareSource) Load(ipv4Only bool) (Blocks, error) {
+func (c *CloudflareLoadable) Load(ipv4Only bool) (Blocks, error) {
 
 	blocks := make(Blocks, 0)
 	v4, err := c.loadUrl("https://www.cloudflare.com/ips-v4")

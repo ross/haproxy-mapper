@@ -11,17 +11,17 @@ type gcIpRanges struct {
 	Prefixes []gcPrefix `json:"prefixes"`
 }
 
-type GcSource struct {
+type GoogleCloudLoadable struct {
 	httpJson HttpJson
 }
 
-func GcSourceCreate(ipv4Only bool) (*GcSource, error) {
-	return &GcSource{
+func GoogleCloudLoadableCreate(ipv4Only bool) (*GoogleCloudLoadable, error) {
+	return &GoogleCloudLoadable{
 		httpJson: HttpJsonCreate(),
 	}, nil
 }
 
-func (g *GcSource) Load(ipv4Only bool) (Blocks, error) {
+func (g *GoogleCloudLoadable) Load(ipv4Only bool) (Blocks, error) {
 	ranges := gcIpRanges{}
 	err := g.httpJson.Fetch("https://www.gstatic.com/ipranges/cloud.json", "GET", &ranges)
 	if err != nil {
