@@ -2,6 +2,7 @@ package main
 
 import (
 	"net"
+	"strings"
 
 	maxminddb "github.com/oschwald/maxminddb-golang"
 )
@@ -22,12 +23,13 @@ type recordCity struct {
 }
 
 type MaxMindCityOrigin struct {
-	Filename  string
-	db        *maxminddb.Reader
-	city      Emitter
-	continent Emitter
-	country   Emitter
-	location  Emitter
+	Filename     string
+	db           *maxminddb.Reader
+	city         Emitter
+	continent    Emitter
+	country      Emitter
+	location     Emitter
+	subdivisions Emitter
 }
 
 func MaxMindCityOriginCreate(filename string) (*MaxMindCityOrigin, error) {
@@ -51,6 +53,9 @@ func MaxMindCityOriginCreate(filename string) (*MaxMindCityOrigin, error) {
 		location: Emitter{
 			id: "city.location",
 		},
+		subdivisions: Emitter{
+			id: "city.location",
+		},
 	}, nil
 }
 
@@ -68,6 +73,10 @@ func (m *MaxMindCityOrigin) AddCountryReceiver(receiver Receiver) {
 
 func (m *MaxMindCityOrigin) AddLocationReceiver(receiver Receiver) {
 	m.location.AddReceiver(receiver)
+}
+
+func (m *MaxMindCityOrigin) AddSubdivisionsReceiver(receiver Receiver) {
+	m.subdivisions.AddReceiver(receiver)
 }
 
 func (m *MaxMindCityOrigin) Run(ipv4Only bool) error {
@@ -92,20 +101,32 @@ func (m *MaxMindCityOrigin) Run(ipv4Only bool) error {
 		if err != nil {
 			return err
 		}
-		location := ""
 		if len(record.Continent.Code) > 0 {
-			if len(record.Country.ISOCode) > 0 {
-				if city, ok := record.City.Names["en"]; ok && len(city) > 0 {
-					location = record.Continent.Code + "-" + record.Country.ISOCode + "-" + city
-					m.city.Emit(BlockCreate(net, &city))
-				} else {
-					location = record.Continent.Code + "-" + record.Country.ISOCode
-				}
-				m.country.Emit(BlockCreate(net, &record.Country.ISOCode))
-			} else {
-				location = record.Continent.Code
-			}
+			location := record.Continent.Code
 			m.continent.Emit(BlockCreate(net, &record.Continent.Code))
+
+			if len(record.Country.ISOCode) > 0 {
+				location += "/" + record.Country.ISOCode
+				m.country.Emit(BlockCreate(net, &record.Country.ISOCode))
+
+				subs := make([]string, 0)
+				for _, subdivision := range record.Subdivisions {
+					// There can be multiple subdivisions...
+					if subdivisionName, ok := subdivision.Names["en"]; ok {
+						location += "/" + subdivisionName
+						subs = append(subs, subdivisionName)
+					}
+				}
+				if len(subs) > 0 {
+					subs := strings.Join(subs, "/")
+					m.subdivisions.Emit(BlockCreate(net, &subs))
+				}
+
+				if city, ok := record.City.Names["en"]; ok && len(city) > 0 {
+					location += "/" + city
+					m.city.Emit(BlockCreate(net, &city))
+				}
+			}
 			m.location.Emit(BlockCreate(net, &location))
 		}
 	}
@@ -114,6 +135,7 @@ func (m *MaxMindCityOrigin) Run(ipv4Only bool) error {
 	m.continent.Done()
 	m.country.Done()
 	m.location.Done()
+	m.subdivisions.Done()
 
 	return nil
 }

@@ -42,6 +42,12 @@ func ip_to_location(src, outdir string, ipv4Only bool, wg *sync.WaitGroup) {
 	}
 	city.AddLocationReceiver(ipToLocation)
 
+	ipToSubdivisions, err := MapDestinationCreate(path.Join(outdir, "ip_to_subdivisions"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	city.AddSubdivisionsReceiver(ipToSubdivisions)
+
 	city.Run(ipv4Only)
 }
 
