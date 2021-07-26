@@ -86,8 +86,8 @@ func (m *MaxMindCityOrigin) Run(ipv4Only bool) error {
 		maxminddb.SkipAliasedNetworks(networks)
 	}
 
-	record := recordCity{}
 	for networks.Next() {
+		record := recordCity{}
 		net, err := networks.Network(&record)
 		if err != nil {
 			return err
