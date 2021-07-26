@@ -38,39 +38,58 @@ func (c *Asns) Next() (*Block, error) {
 	return nil, nil
 }
 
-type MaxMindAsnSource struct {
+type MaxMindAsnOrigin struct {
 	Filename string
-	Ipv4Only bool
 	db       *maxminddb.Reader
+	Emitter
 }
 
-func MaxMindAsnSourceCreate(filename string, ipv4Only bool) (*MaxMindAsnSource, error) {
+func MaxMindAsnOriginCreate(filename string) (*MaxMindAsnOrigin, error) {
 	db, err := maxminddb.Open(filename)
 	if err != nil {
 		return nil, err
 	}
 
-	return &MaxMindAsnSource{
+	return &MaxMindAsnOrigin{
 		Filename: filename,
-		Ipv4Only: ipv4Only,
 		db:       db,
+		Emitter: Emitter{
+			id: "aws",
+		},
 	}, nil
 }
 
-func (m *MaxMindAsnSource) Asns() (*Asns, error) {
+func (m *MaxMindAsnOrigin) Run(ipv4Only bool) error {
 	cidr := "::/0"
-	if m.Ipv4Only {
+	if ipv4Only {
 		cidr = "0.0.0.0/0"
 	}
 	_, network, err := net.ParseCIDR(cidr)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	networks := m.db.NetworksWithin(network)
-	if !m.Ipv4Only {
+	if !ipv4Only {
 		// We only want Ipv4 addresses once, if we call this when iterating
 		// over 0.0.0.0/8 we get nothing for some reason
 		maxminddb.SkipAliasedNetworks(networks)
 	}
-	return NewAsns(networks)
+
+	record := recordAsn{}
+	for networks.Next() {
+		net, err := networks.Network(&record)
+		if err != nil {
+			return err
+		}
+		asn := fmt.Sprintf("AS%d", record.Asn)
+
+		err = m.Emit(BlockCreate(net, &asn))
+		if err != nil {
+			return err
+		}
+	}
+
+	m.Done()
+
+	return nil
 }
