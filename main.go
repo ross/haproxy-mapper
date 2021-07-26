@@ -17,11 +17,30 @@ func ip_to_location(src, outdir string, ipv4Only bool, wg *sync.WaitGroup) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	ipToCity, err := MapDestinationCreate(path.Join(outdir, "ip_to_city"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	city.AddCityReceiver(ipToCity)
+
+	ipToContinent, err := MapDestinationCreate(path.Join(outdir, "ip_to_continent"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	city.AddContinentReceiver(ipToContinent)
+
+	ipToCountry, err := MapDestinationCreate(path.Join(outdir, "ip_to_country"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	city.AddCountryReceiver(ipToCountry)
+
 	ipToLocation, err := MapDestinationCreate(path.Join(outdir, "ip_to_location"))
 	if err != nil {
 		log.Fatal(err)
 	}
-	city.AddReceiver(ipToLocation)
+	city.AddLocationReceiver(ipToLocation)
 
 	city.Run(ipv4Only)
 }

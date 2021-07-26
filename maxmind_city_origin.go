@@ -22,9 +22,12 @@ type recordCity struct {
 }
 
 type MaxMindCityOrigin struct {
-	Filename string
-	db       *maxminddb.Reader
-	Emitter
+	Filename  string
+	db        *maxminddb.Reader
+	city      Emitter
+	continent Emitter
+	country   Emitter
+	location  Emitter
 }
 
 func MaxMindCityOriginCreate(filename string) (*MaxMindCityOrigin, error) {
@@ -36,10 +39,35 @@ func MaxMindCityOriginCreate(filename string) (*MaxMindCityOrigin, error) {
 	return &MaxMindCityOrigin{
 		Filename: filename,
 		db:       db,
-		Emitter: Emitter{
-			id: "aws",
+		city: Emitter{
+			id: "city.continent",
+		},
+		continent: Emitter{
+			id: "city.continent",
+		},
+		country: Emitter{
+			id: "city.country",
+		},
+		location: Emitter{
+			id: "city.location",
 		},
 	}, nil
+}
+
+func (m *MaxMindCityOrigin) AddCityReceiver(receiver Receiver) {
+	m.city.AddReceiver(receiver)
+}
+
+func (m *MaxMindCityOrigin) AddContinentReceiver(receiver Receiver) {
+	m.continent.AddReceiver(receiver)
+}
+
+func (m *MaxMindCityOrigin) AddCountryReceiver(receiver Receiver) {
+	m.country.AddReceiver(receiver)
+}
+
+func (m *MaxMindCityOrigin) AddLocationReceiver(receiver Receiver) {
+	m.location.AddReceiver(receiver)
 }
 
 func (m *MaxMindCityOrigin) Run(ipv4Only bool) error {
@@ -69,17 +97,23 @@ func (m *MaxMindCityOrigin) Run(ipv4Only bool) error {
 			if len(record.Country.ISOCode) > 0 {
 				if city, ok := record.City.Names["en"]; ok && len(city) > 0 {
 					location = record.Continent.Code + "-" + record.Country.ISOCode + "-" + city
+					m.city.Emit(BlockCreate(net, &city))
 				} else {
 					location = record.Continent.Code + "-" + record.Country.ISOCode
 				}
+				m.country.Emit(BlockCreate(net, &record.Country.ISOCode))
 			} else {
 				location = record.Continent.Code
 			}
+			m.continent.Emit(BlockCreate(net, &record.Continent.Code))
+			m.location.Emit(BlockCreate(net, &location))
 		}
-		m.Emit(BlockCreate(net, &location))
 	}
 
-	m.Done()
+	m.city.Done()
+	m.continent.Done()
+	m.country.Done()
+	m.location.Done()
 
 	return nil
 }
