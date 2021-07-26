@@ -140,6 +140,22 @@ func ip_to_provider(outdir string, ipv4Only bool, wg *sync.WaitGroup) {
 	gc.Run(ipv4Only)
 }
 
+func ip_to_droplist(outdir string, ipv4Only bool, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	asn, err := SpamhausOriginCreate()
+	if err != nil {
+		log.Fatal(err)
+	}
+	ipToAsn, err := MapDestinationCreate(path.Join(outdir, "ip_to_droplist"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	asn.AddReceiver(ipToAsn)
+
+	asn.Run(ipv4Only)
+}
+
 func main() {
 	var wg sync.WaitGroup
 
@@ -151,6 +167,8 @@ func main() {
 	go ip_to_asn("tmp/GeoLite2-ASN.mmdb", outdir, ipv4Only, &wg)
 	wg.Add(1)
 	go ip_to_provider(outdir, ipv4Only, &wg)
+	wg.Add(1)
+	go ip_to_droplist(outdir, ipv4Only, &wg)
 	wg.Add(1)
 
 	wg.Wait()

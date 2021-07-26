@@ -4,11 +4,6 @@ import (
 	"strings"
 )
 
-type cloudflarePublicIpList struct {
-	Addresses     []string `json:"addresses"`
-	Ipv6Addresses []string `json:"ipv6_addresses"`
-}
-
 type CloudflareOrigin struct {
 	httpJson HttpJson
 	Emitter
