@@ -5,21 +5,25 @@ type fastlyPublicIpList struct {
 	Ipv6Addresses []string `json:"ipv6_addresses"`
 }
 
-type FastlyLoadable struct {
+type FastlyOrigin struct {
 	httpJson HttpJson
+	Emitter
 }
 
-func FastlyLoadableCreate() (*FastlyLoadable, error) {
-	return &FastlyLoadable{
+func FastlyOriginCreate() (*FastlyOrigin, error) {
+	return &FastlyOrigin{
 		httpJson: HttpJsonCreate(),
+		Emitter: Emitter{
+			id: "fastly",
+		},
 	}, nil
 }
 
-func (f *FastlyLoadable) Load(ipv4Only bool) (Blocks, error) {
+func (f *FastlyOrigin) Run(ipv4Only bool) error {
 	ranges := fastlyPublicIpList{}
 	err := f.httpJson.Fetch("https://api.fastly.com/public-ip-list", "GET", &ranges)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	addresses := make([]string, 0)
@@ -28,15 +32,17 @@ func (f *FastlyLoadable) Load(ipv4Only bool) (Blocks, error) {
 		addresses = append(addresses, ranges.Ipv6Addresses...)
 	}
 
-	blocks := make(Blocks, 0)
 	value := "Fastly"
 	for _, cidr := range addresses {
 		block, err := BlockCreateWithCidr(&cidr, &value)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		blocks = append(blocks, block)
+		err = f.Emit(block)
+		if err != nil {
+			return err
+		}
 	}
 
-	return blocks, nil
+	return f.Done()
 }

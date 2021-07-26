@@ -1,5 +1,9 @@
 package main
 
+import (
+	"sort"
+)
+
 type gcPrefix struct {
 	Ipv4Prefix string `json:"ipv4Prefix"`
 	Ipv6Prefix string `json:"ipv6Prefix"`
@@ -11,21 +15,25 @@ type gcIpRanges struct {
 	Prefixes []gcPrefix `json:"prefixes"`
 }
 
-type GoogleCloudLoadable struct {
+type GoogleCloudOrigin struct {
 	httpJson HttpJson
+	Emitter
 }
 
-func GoogleCloudLoadableCreate(ipv4Only bool) (*GoogleCloudLoadable, error) {
-	return &GoogleCloudLoadable{
+func GoogleCloudOriginCreate(ipv4Only bool) (*GoogleCloudOrigin, error) {
+	return &GoogleCloudOrigin{
 		httpJson: HttpJsonCreate(),
+		Emitter: Emitter{
+			id: "google_cloud",
+		},
 	}, nil
 }
 
-func (g *GoogleCloudLoadable) Load(ipv4Only bool) (Blocks, error) {
+func (g *GoogleCloudOrigin) Run(ipv4Only bool) error {
 	ranges := gcIpRanges{}
 	err := g.httpJson.Fetch("https://www.gstatic.com/ipranges/cloud.json", "GET", &ranges)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	blocks := make(Blocks, 0)
@@ -41,10 +49,18 @@ func (g *GoogleCloudLoadable) Load(ipv4Only bool) (Blocks, error) {
 		}
 		block, err := BlockCreateWithCidr(&cidr, &value)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		blocks = append(blocks, block)
 	}
 
-	return blocks, nil
+	sort.Sort(blocks)
+
+	for _, block := range blocks {
+		g.Emit(block)
+	}
+
+	g.Done()
+
+	return nil
 }

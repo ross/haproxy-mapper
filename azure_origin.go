@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -21,17 +22,21 @@ type azureValues struct {
 	Values []azureValue `json:"values"`
 }
 
-type AzureLoadable struct {
+type AzureOrigin struct {
 	httpJson HttpJson
+	Emitter
 }
 
-func AzureLoadableCreate() (*AzureLoadable, error) {
-	return &AzureLoadable{
+func AzureOriginCreate() (*AzureOrigin, error) {
+	return &AzureOrigin{
 		httpJson: HttpJsonCreate(),
+		Emitter: Emitter{
+			id: "aws",
+		},
 	}, nil
 }
 
-func (a *AzureLoadable) Load(ipv4Only bool) (Blocks, error) {
+func (a *AzureOrigin) Run(ipv4Only bool) error {
 
 	// WARNING: hack incoming... Azure doesn't have a non-authenticated way to
 	// grab its list of IP addresses via an api call, but you can visit a
@@ -42,21 +47,21 @@ func (a *AzureLoadable) Load(ipv4Only bool) (Blocks, error) {
 	url := "https://www.microsoft.com/en-us/download/confirmation.aspx?id=56519"
 	bodyBytes, err := a.httpJson.FetchBody(url, "GET")
 	if err != nil {
-		return nil, err
+		return err
 	}
 	body := string(bodyBytes[:])
 
 	r := regexp.MustCompile(`click here to download.*href="(?P<url>[^"]+)"`)
 	matches := r.FindStringSubmatch(body)
 	if len(matches) != 2 {
-		return nil, errors.New("Failed to find the download url (hacky)")
+		return errors.New("Failed to find the download url (hacky)")
 	}
 	url = matches[1]
 
 	values := azureValues{}
 	err = a.httpJson.Fetch(url, "GET", &values)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	blocks := make(Blocks, 0)
@@ -73,11 +78,19 @@ func (a *AzureLoadable) Load(ipv4Only bool) (Blocks, error) {
 			}
 			block, err := BlockCreateWithCidr(&cidr, &info)
 			if err != nil {
-				return nil, err
+				return err
 			}
 			blocks = append(blocks, block)
 		}
 	}
 
-	return blocks, nil
+	sort.Sort(blocks)
+
+	for _, block := range blocks {
+		a.Emit(block)
+	}
+
+	a.Done()
+
+	return nil
 }

@@ -6,42 +6,28 @@ import (
 	"os"
 )
 
-type Map struct {
+type MapDestination struct {
 	Filename string
 	fh       *os.File
 	buf      *bufio.Writer
 }
 
-func MapCreate(filename string) (*Map, error) {
+func MapDestinationCreate(filename string) (*MapDestination, error) {
 	fh, err := os.Create(filename)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Map{
+	return &MapDestination{
 		Filename: filename,
 		fh:       fh,
 		buf:      bufio.NewWriter(fh),
 	}, nil
 }
 
-func (m *Map) Close() error {
-	defer func() {
-		m.buf = nil
-		m.fh = nil
-	}()
+func (m *MapDestination) Subscribed(id string) {}
 
-	var err error = nil
-	if m.buf != nil {
-		err = m.buf.Flush()
-	}
-	if m.fh != nil {
-		return m.fh.Close()
-	}
-	return err
-}
-
-func (m *Map) Write(block *Block) error {
+func (m *MapDestination) Receive(id string, block *Block) error {
 	if m.buf == nil {
 		return errors.New("Write called on closed Map")
 	}
@@ -58,12 +44,18 @@ func (m *Map) Write(block *Block) error {
 	return m.buf.WriteByte('\n')
 }
 
-func (m *Map) Consume(source Source) error {
-	block, err := source.Next()
-	for ; block != nil && err == nil; block, err = source.Next() {
-		if len(*block.value) > 0 {
-			err = m.Write(block)
-		}
+func (m *MapDestination) Done(id string) error {
+	defer func() {
+		m.buf = nil
+		m.fh = nil
+	}()
+
+	var err error = nil
+	if m.buf != nil {
+		err = m.buf.Flush()
+	}
+	if m.fh != nil {
+		return m.fh.Close()
 	}
 	return err
 }

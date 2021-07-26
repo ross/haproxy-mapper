@@ -1,5 +1,9 @@
 package main
 
+import (
+	"sort"
+)
+
 type awsIpPrefix struct {
 	// Annoyingly the aws json has two different ip prefixes, with the v6 added
 	// to a single field in one of them. This ~hack lets us have a single type
@@ -24,21 +28,25 @@ type awsIpRanges struct {
 	Ipv6Prefixes []awsIpPrefix `json:"ipv6_prefixes"`
 }
 
-type AwsLoadable struct {
+type AwsOrigin struct {
 	httpJson HttpJson
+	Emitter
 }
 
-func AwsLoadableCreate() (*AwsLoadable, error) {
-	return &AwsLoadable{
+func AwsOriginCreate() (*AwsOrigin, error) {
+	return &AwsOrigin{
 		httpJson: HttpJsonCreate(),
+		Emitter: Emitter{
+			id: "aws",
+		},
 	}, nil
 }
 
-func (a *AwsLoadable) Load(ipv4Only bool) (Blocks, error) {
+func (a *AwsOrigin) Run(ipv4Only bool) error {
 	ranges := awsIpRanges{}
 	err := a.httpJson.Fetch("https://ip-ranges.amazonaws.com/ip-ranges.json", "GET", &ranges)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	specificBlocks := make(map[string]*Block)
@@ -54,7 +62,7 @@ func (a *AwsLoadable) Load(ipv4Only bool) (Blocks, error) {
 		cidr := prefix.IpPrefix()
 		block, err := BlockCreateWithCidr(&cidr, &value)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		if prefix.Service == "AMAZON" {
 			// Treat AMAZON service specially, there's lots of duplicates with
@@ -78,5 +86,15 @@ func (a *AwsLoadable) Load(ipv4Only bool) (Blocks, error) {
 		}
 	}
 
-	return blocks, nil
+	sort.Sort(blocks)
+
+	for _, block := range blocks {
+		if err := a.Emit(block); err != nil {
+			return err
+		}
+	}
+
+	a.Done()
+
+	return nil
 }
