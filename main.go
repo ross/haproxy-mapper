@@ -35,6 +35,7 @@ func main() {
 	includeCloudflare := flag.Bool("cloudflare", true, "Include Cloudflare data")
 	includeFastly := flag.Bool("fastly", true, "Include Fastly data")
 	includeGoogleCloud := flag.Bool("google-cloud", true, "Include Google Cloud data")
+	includeOracle := flag.Bool("oracle", true, "Include Oracle data")
 	includeProvider := flag.Bool("provider", true, "Include providers map")
 	asnDb := flag.String("asn-db", "", "MaxMind ASN database file")
 	cityDb := flag.String("city-db", "", "MaxMind City database file")
@@ -154,6 +155,24 @@ func main() {
 
 		wg.Add(1)
 		runnables = append(runnables, googleCloud)
+	}
+
+	if *includeOracle {
+		oracle, err := OracleOriginCreate()
+		if err != nil {
+			log.Fatal(err)
+		}
+		ipToOracle, err := MapDestinationCreate(path.Join(*outdir, "ip_to_oracle"))
+		if err != nil {
+			log.Fatal(err)
+		}
+		oracle.AddReceiver(ipToOracle)
+		if providerMerger != nil {
+			oracle.AddReceiver(providerMerger)
+		}
+
+		wg.Add(1)
+		runnables = append(runnables, oracle)
 	}
 
 	if *asnDb != "" {
