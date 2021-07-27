@@ -1,5 +1,151 @@
 ## HAProxy Mapper
 
+Tools for generating [HAProxy
+Maps](https://www.haproxy.com/blog/introduction-to-haproxy-maps/) from various
+sources of data including [MaxMind](https://maxmind.com/),
+[Spamhaus](https://www.spamhaus.org/), and various Cloud and CDN providers. The
+resulting maps can be useful for many purposes: observability, legal
+compliance, defending against DDoS attacks.
+
+### Sources
+
+* Providers
+  * AWS
+  * Azure - Hacky currently to avoid requiring auth
+  * Cloudflare
+  * Fastly
+  * Google Cloud
+  * Oracle
+* MaxMind
+  * ASN/ISP
+  * City
+* Spamhaus
+
+If you have a source of data you'd like to see included [open an
+issue](https://github.com/ross/haproxy-mapper/issues/new) or even better submit
+a PR. If there's a publicly available JSON or TXT file with data for the source
+please include info about it in the issue, doing so will make it much more
+likely to be implemented.
+
+### Mapfile Format
+
+Map files have 1 value per line. The format is a range of IP addresses in [CIDR
+notation](https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing#CIDR_notation)
+followed by a space and then an associated value for that range. The value
+details vary by map, but consists of UTF-8 characters and punctuation and may
+include spaces.  Generally haproxy-mapper uses `/` as a separator when a value
+has multiple components. See the map file headers for more details.
+
+```
+1.0.0.0/24 OC/AU
+1.0.1.0/24 AS/CN
+1.0.2.0/23 AS/CN
+1.0.4.0/22 OC/AU
+1.0.8.0/21 AS/CN
+1.0.16.0/20 AS/JP
+1.0.32.0/19 AS/CN
+1.0.64.0/24 AS/JP/Hiroshima/Hiroshima
+1.0.65.0/25 AS/JP/Kanagawa/Sagamihara
+1.0.65.128/25 AS/JP/Hiroshima/Hiroshima
+```
+
+## Using map files with HAProxy
+
+
+### General map lookups
+
+The following [HAProxy
+configuration](https://cbonte.github.io/haproxy-dconv/2.4/configuration.html)
+snippet will map the `src` to a location when one is available.
+
+If you will be using the results of the map lookup for multiple purposes it
+often makes sense to store the value in a variable. `txn` variables allow
+access to the value across the full life-cycle of the request/connection once
+their set. You can use `req` or `res` if your specific needs limit the times at
+which you will need access to the value.
+
+```
+http-request set-var(txn.client_ip_location) src,map_ip(/etc/haproxy/maps/ip_to_location)
+```
+
+### Passing values to backend servers
+
+Pass the previously mapped client IP location to the backend server as a
+request header
+
+```
+http-request set-header x-client-ip-location %[var(txn.client_ip_location)]
+```
+
+### Making decisions based on lookups
+
+Once you've looked up a value in a map it can be used to make decisions in
+HAProxy via ACL's. For example the following would disallow requests that come
+from IPs that have the country equal to Canada.
+
+```
+http-request set-var(txn.client_ip_location) src,map_ip(/etc/haproxy/maps/ip_to_location)
+acl is_country_ca var(txn.client_ip_location) -i CA
+use_backend 403_forbidden backend_banned_banhammer if is_country_ca
+```
+
+### Logging values
+
+If you're going to be mapping IPs it often makes sense to log the results for
+observability and debugging purposes. The details of HAProxy logging are beyond
+the scope of this README, see
+[ross/haproxied](https://github.com/ross/haproxied) for more information, but
+the following snippet should provide the specific bits required to get a lookup
+result into your logs. We'll first need to get the lookup value stored in a
+variable.
+
+```
+http-request set-var(txn.client_ip_location) src,map_ip(/etc/haproxy/maps/ip_to_location)
+```
+
+We can then include the variable's value in our `log-format` to emit its value as part of our log line.
+
+```
+  log-format "backend_name=%b ... client_ip_location=%{+Q,+E}[var(txn.client_ip_location)] ..."
+```
+
+### src vs X-Forwarded-For
+
+The above example used
+[`src`](https://cbonte.github.io/haproxy-dconv/2.4/configuration.html#src), but
+in some situations that maybe the IP address of a proxy, either on the internet
+or within your network, that will mask the true origin of the request. In many
+such cases the original client IP address will be passed to the server using
+the [`x-forwarded-for` header](https://en.wikipedia.org/wiki/X-Forwarded-For).
+
+It is important that you "trust" the source of the header before you utilize it
+as it is trivial for clients to add the header to confuse or obfuscate. This
+can potentially be accomplished by having proxies under your control at the
+edge of your network strip or clear any such headers they see. They can then
+add a new x-forwarded-for header with the information as they see it.
+Subsequent proxies in your system can then choose to leave x-forwarded-for
+headers in place when `src` is on a trusted network and thus an internal server
+under your control. See [ross/haproxied](https://github.com/ross/haproxied) for
+more information and examples.
+
+Assuming you trust the `x-forwarded-for` header you can make use of it during
+mapping.
+
+```
+acl has_existing_x_forwarded_for req.hdr(x-forwarded-for) -m found
+http-request set-header x-real-ip %[req.hdr(x-forwarded-for,1)] if has_existing_x_forwarded_for
+http-request set-header x-real-ip %ci if !has_existing_x_forwarded_for
+http-request set-header x-real-ip-location req.hdr(x-real-ip),map_ip(/etc/haproxy/maps/ip_to_location)
+```
+
+If you'll be using the values of `x-real-ip` and/or `x-real-ip-location`
+elsewhere they can be set into variables.
+
+```
+http-request set-var(txn.real_ip) req.hdr(x-real-ip)
+http-request set-var(txn.real_ip_location) req.hdr(x-real-ip-location)
+```
+
 ## Generating Maps
 
 The shortcut `-all` will create all available maps. It requires both MaxMind
@@ -112,14 +258,8 @@ Maps in out
  26169025 total
 ```
 
-## Using map files with HAProxy
+## Related Links
 
-### General map lookups
-
-### src vs X-Forwarded-For
-
-### Passing values to backend servers
-
-### Making decisions based on lookups
-
-### Logging values
+* https://www.haproxy.com/blog/introduction-to-haproxy-maps/
+* https://www.haproxy.com/documentation/hapee/latest/configuration/map-files/syntax/
+* https://cbonte.github.io/haproxy-dconv/2.4/configuration.html
