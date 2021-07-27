@@ -1,10 +1,5 @@
 package main
 
-type sourceAndCurrent struct {
-	source  Source
-	current *Block
-}
-
 type MergingProcessor struct {
 	queues map[string][]*Block
 	done   map[string]bool

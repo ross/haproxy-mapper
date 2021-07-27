@@ -20,7 +20,7 @@ type GoogleCloudOrigin struct {
 	Emitter
 }
 
-func GoogleCloudOriginCreate(ipv4Only bool) (*GoogleCloudOrigin, error) {
+func GoogleCloudOriginCreate() (*GoogleCloudOrigin, error) {
 	return &GoogleCloudOrigin{
 		httpJson: HttpJsonCreate(),
 		Emitter: Emitter{
