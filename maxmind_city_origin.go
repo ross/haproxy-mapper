@@ -122,7 +122,10 @@ func (m *MaxMindCityOrigin) Run(ipv4Only bool) error {
 					}
 				}
 				if len(subs) > 0 {
-					subs := strings.Join(subs, "/")
+					// We'll use a comma seperated list here as that will allow
+					// header parsing to see each subdivision as a seperate
+					// header value when there are multiple.
+					subs := strings.Join(subs, ", ")
 					m.subdivisions.Emit(BlockCreate(net, &subs))
 				}
 
