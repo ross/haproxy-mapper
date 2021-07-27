@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"net"
 	"strings"
 
@@ -37,24 +38,27 @@ func MaxMindCityOriginCreate(filename string) (*MaxMindCityOrigin, error) {
 	if err != nil {
 		return nil, err
 	}
+	if !strings.HasSuffix(db.Metadata.DatabaseType, "City") {
+		return nil, errors.New("provided database is not MaxMind City")
+	}
 
 	return &MaxMindCityOrigin{
 		Filename: filename,
 		db:       db,
 		city: Emitter{
-			id: "city.continent",
+			id: "maxmind.continent",
 		},
 		continent: Emitter{
-			id: "city.continent",
+			id: "maxmind.continent",
 		},
 		country: Emitter{
-			id: "city.country",
+			id: "maxmind.country",
 		},
 		location: Emitter{
-			id: "city.location",
+			id: "maxmind.location",
 		},
 		subdivisions: Emitter{
-			id: "city.location",
+			id: "maxmind.subdivisions",
 		},
 	}, nil
 }

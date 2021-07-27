@@ -7,7 +7,7 @@ import (
 
 type oraclePublicIpRanges struct {
 	Regions []struct {
-		Region string        `json:"region"`
+		Region string `json:"region"`
 		Cidrs  []struct {
 			Cidr string   `json:"cidr"`
 			Tags []string `json:"tags"`

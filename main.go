@@ -2,7 +2,9 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
+	"os"
 	"path"
 	"sync"
 )
@@ -27,9 +29,15 @@ func ip_to_droplist(outdir string, ipv4Only bool, wg *sync.WaitGroup) {
 	asn.Run(ipv4Only)
 }
 
+func fatalUsage(msg string) {
+	fmt.Fprintln(os.Stderr, msg)
+	os.Exit(1)
+}
+
 func main() {
 	outdir := flag.String("outdir", "", "Output directory")
-	includeIpv6 := flag.Bool("ipv6", false, "Process IPv6 data")
+	includeIpv6 := flag.Bool("ipv6", true, "Process IPv6 data, -ipv6=false to disable")
+	includeAll := flag.Bool("all", false, "Include All data")
 	includeAws := flag.Bool("aws", false, "Include AWS data")
 	includeAzure := flag.Bool("azure", false, "Include Azure data")
 	includeCloudflare := flag.Bool("cloudflare", false, "Include Cloudflare data")
@@ -38,18 +46,41 @@ func main() {
 	includeOracle := flag.Bool("oracle", false, "Include Oracle data")
 	includeProvider := flag.Bool("provider", false, "Include providers map")
 	asnDb := flag.String("asn-db", "", "MaxMind ASN database file")
+	includeAsn := flag.Bool("asn", false, "Include asn map, requires -asn-db or -isp-db")
+	ispDb := flag.String("isp-db", "", "MaxMind ISP database file")
+	includeIsp := flag.Bool("isp", false, "Include isp map, requires -isp-db")
 	cityDb := flag.String("city-db", "", "MaxMind City database file")
-	includeLocation := flag.Bool("location", false, "Include location map")
-	includeContinent := flag.Bool("continent", false, "Include continent map")
-	includeCountry := flag.Bool("country", false, "Include country map")
-	includeSubdivisions := flag.Bool("subdivisions", false, "Include subdivisions map")
-	includeCity := flag.Bool("city", false, "Include city map")
+	includeLocation := flag.Bool("location", false, "Include location map, requires -city-db")
+	includeContinent := flag.Bool("continent", false, "Include continent map, requires -city-db")
+	includeCountry := flag.Bool("country", false, "Include country map, requires -city-db")
+	includeSubdivisions := flag.Bool("subdivisions", false, "Include subdivisions map, requires -city-db")
+	includeCity := flag.Bool("city", false, "Include city map, requires -city-db")
 	includeSpamhaus := flag.Bool("spamhaus", false, "Include spamhaus data")
 
 	flag.Parse()
 
 	if *outdir == "" {
 		log.Fatal("missing required argument -outdir")
+	}
+
+	if *includeAll {
+		*includeIpv6 = true
+		*includeAll = true
+		*includeAws = true
+		*includeAzure = true
+		*includeCloudflare = true
+		*includeFastly = true
+		*includeGoogleCloud = true
+		*includeOracle = true
+		*includeProvider = true
+		*includeAsn = true
+		*includeIsp = true
+		*includeLocation = true
+		*includeContinent = true
+		*includeCountry = true
+		*includeSubdivisions = true
+		*includeCity = true
+		*includeSpamhaus = true
 	}
 
 	var wg sync.WaitGroup
@@ -175,24 +206,52 @@ func main() {
 		runnables = append(runnables, oracle)
 	}
 
+	// This section makes sure our isp/asn params "make sense"
+	if *asnDb != "" && *ispDb != "" {
+		fatalUsage("-asn-db and -isp-db both specified, use -isp-db")
+	} else if *includeIsp && *ispDb == "" {
+		fatalUsage("argument -isp enabled, but -isp-db not specified")
+	} else if *includeAsn && *ispDb == "" && *asnDb == "" {
+		fatalUsage("argument -asn enabled, but neither -asn-db nor -isp-db specified")
+	} else if *ispDb != "" && !*includeIsp && !*includeAsn {
+		fatalUsage("argument -isp-db provided, but no associated maps included")
+	} else if *asnDb != "" && !*includeAsn {
+		fatalUsage("argument -asn-db provided, but no associated maps included")
+	}
+
 	if *asnDb != "" {
-		asn, err := MaxMindAsnOriginCreate(*asnDb)
+		*ispDb = *asnDb
+	}
+
+	if *ispDb != "" {
+		isp, err := MaxMindIspOriginCreate(*ispDb)
 		if err != nil {
 			log.Fatal(err)
 		}
-		ipToAsn, err := MapDestinationCreate(path.Join(*outdir, "ip_to_asn"))
-		if err != nil {
-			log.Fatal(err)
+
+		if *includeAsn {
+			ipToAsn, err := MapDestinationCreate(path.Join(*outdir, "ip_to_asn"))
+			if err != nil {
+				log.Fatal(err)
+			}
+			isp.AddAsnReceiver(ipToAsn)
 		}
-		asn.AddReceiver(ipToAsn)
+
+		if *includeIsp {
+			ipToIsp, err := MapDestinationCreate(path.Join(*outdir, "ip_to_isp"))
+			if err != nil {
+				log.Fatal(err)
+			}
+			isp.AddIspReceiver(ipToIsp)
+		}
 
 		wg.Add(1)
-		runnables = append(runnables, asn)
+		runnables = append(runnables, isp)
 	}
 
 	if *cityDb != "" {
 		if !*includeCity && !*includeContinent && !*includeCountry && !*includeLocation && !*includeSubdivisions {
-			log.Fatal("argument -city-db provided, but no associated maps included")
+			fatalUsage("argument -city-db provided, but no associated maps included")
 		}
 
 		city, err := MaxMindCityOriginCreate(*cityDb)
@@ -243,15 +302,15 @@ func main() {
 		wg.Add(1)
 		runnables = append(runnables, city)
 	} else if *includeCity {
-		log.Fatal("argument -city enabled, but -city-db not specified")
+		fatalUsage("argument -city enabled, but -city-db not specified")
 	} else if *includeContinent {
-		log.Fatal("argument -continent enabled, but -city-db not specified")
+		fatalUsage("argument -continent enabled, but -city-db not specified")
 	} else if *includeCountry {
-		log.Fatal("argument -country enabled, but -city-db not specified")
+		fatalUsage("argument -country enabled, but -city-db not specified")
 	} else if *includeLocation {
-		log.Fatal("argument -location enabled, but -city-db not specified")
+		fatalUsage("argument -location enabled, but -city-db not specified")
 	} else if *includeSubdivisions {
-		log.Fatal("argument -subdivisions enabled, but -city-db not specified")
+		fatalUsage("argument -subdivisions enabled, but -city-db not specified")
 	}
 
 	if *includeSpamhaus {
@@ -267,6 +326,10 @@ func main() {
 
 		wg.Add(1)
 		runnables = append(runnables, spamhaus)
+	}
+
+	if len(runnables) == 0 {
+		fatalUsage("No outputs specified, see " + os.Args[0] + " -h for help")
 	}
 
 	for _, runnable := range runnables {
