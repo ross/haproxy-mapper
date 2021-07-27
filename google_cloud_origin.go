@@ -4,15 +4,13 @@ import (
 	"sort"
 )
 
-type gcPrefix struct {
-	Ipv4Prefix string `json:"ipv4Prefix"`
-	Ipv6Prefix string `json:"ipv6Prefix"`
-	Service    string `json:"service"`
-	Scope      string `json:"scope"`
-}
-
 type gcIpRanges struct {
-	Prefixes []gcPrefix `json:"prefixes"`
+	Prefixes []struct {
+		Ipv4Prefix string `json:"ipv4Prefix"`
+		Ipv6Prefix string `json:"ipv6Prefix"`
+		Service    string `json:"service"`
+		Scope      string `json:"scope"`
+	} `json:"prefixes"`
 }
 
 type GoogleCloudOrigin struct {

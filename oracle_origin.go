@@ -5,18 +5,14 @@ import (
 	"strings"
 )
 
-type oracleCidrs struct {
-	Cidr string   `json:"cidr"`
-	Tags []string `json:"tags"`
-}
-
-type oracleRegion struct {
-	Region string        `json:"region"`
-	Cidrs  []oracleCidrs `json:"cidrs"`
-}
-
 type oraclePublicIpRanges struct {
-	Regions []oracleRegion `json:"regions"`
+	Regions []struct {
+		Region string        `json:"region"`
+		Cidrs  []struct {
+			Cidr string   `json:"cidr"`
+			Tags []string `json:"tags"`
+		} `json:"cidrs"`
+	} `json:"regions"`
 }
 
 type OracleOrigin struct {

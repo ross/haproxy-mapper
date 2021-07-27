@@ -7,19 +7,15 @@ import (
 	"strings"
 )
 
-type azureProperties struct {
-	Region          string   `json:"region"`
-	Platform        string   `json:"platform"`
-	SystemService   string   `json:"systemService"`
-	AddressPrefixes []string `json:"addressPrefixes"`
-}
-
-type azureValue struct {
-	Properties azureProperties `json:"properties"`
-}
-
 type azureValues struct {
-	Values []azureValue `json:"values"`
+	Values []struct {
+		Properties struct {
+			Region          string   `json:"region"`
+			Platform        string   `json:"platform"`
+			SystemService   string   `json:"systemService"`
+			AddressPrefixes []string `json:"addressPrefixes"`
+		} `json:"properties"`
+	} `json:"values"`
 }
 
 type AzureOrigin struct {
