@@ -219,19 +219,22 @@ func main() {
 		fatalUsage("argument -asn-db provided, but no associated maps included")
 	}
 
+	ispAsnDb := *ispDb
 	if *asnDb != "" {
-		*ispDb = *asnDb
+		ispAsnDb = *asnDb
 	}
 
-	if *ispDb != "" {
-		isp, err := MaxMindIspOriginCreate(*ispDb)
+	if ispAsnDb != "" {
+		isp, err := MaxMindIspOriginCreate(ispAsnDb)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		if *includeIsp && !isp.HaveIspData {
-			fatalUsage("argument -isp enabled, but -isp-db does not include ISP data")
-		} else if *includeAll && isp.HaveIspData {
+		if *ispDb != "" && !isp.HaveIspData {
+			fatalUsage("argument -isp-db specified, but database does not include ISP data")
+		}
+
+		if *includeAll && isp.HaveIspData {
 			*includeIsp = true
 		}
 
