@@ -74,7 +74,7 @@ func main() {
 		*includeOracle = true
 		*includeProvider = true
 		*includeAsn = true
-		*includeIsp = true
+		// includeIsp is special and is only enabled if we have an ISP db, see below
 		*includeLocation = true
 		*includeContinent = true
 		*includeCountry = true
@@ -227,6 +227,12 @@ func main() {
 		isp, err := MaxMindIspOriginCreate(*ispDb)
 		if err != nil {
 			log.Fatal(err)
+		}
+
+		if *includeIsp && !isp.HaveIspData {
+			fatalUsage("argument -isp enabled, but -isp-db does not include ISP data")
+		} else if *includeAll && isp.HaveIspData {
+			*includeIsp = true
 		}
 
 		if *includeAsn {

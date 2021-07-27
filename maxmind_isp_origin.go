@@ -15,10 +15,11 @@ type recordIsp struct {
 }
 
 type MaxMindIspOrigin struct {
-	Filename string
-	db       *maxminddb.Reader
-	asn      Emitter
-	isp      Emitter
+	Filename    string
+	HaveIspData bool
+	db          *maxminddb.Reader
+	asn         Emitter
+	isp         Emitter
 }
 
 func MaxMindIspOriginCreate(filename string) (*MaxMindIspOrigin, error) {
@@ -26,14 +27,17 @@ func MaxMindIspOriginCreate(filename string) (*MaxMindIspOrigin, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !strings.HasSuffix(db.Metadata.DatabaseType, "ISP") &&
-		!strings.HasSuffix(db.Metadata.DatabaseType, "ASN") {
+	haveIspData := false
+	if strings.HasSuffix(db.Metadata.DatabaseType, "ISP") {
+		haveIspData = true
+	} else if !strings.HasSuffix(db.Metadata.DatabaseType, "ASN") {
 		return nil, errors.New("provided database is not MaxMind ISP or ASN")
 	}
 
 	return &MaxMindIspOrigin{
-		Filename: filename,
-		db:       db,
+		Filename:    filename,
+		HaveIspData: haveIspData,
+		db:          db,
 		asn: Emitter{
 			id: "maxmind.asn",
 		},
