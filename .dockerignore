@@ -1,0 +1,6 @@
+# Ignore everything by default
+*
+# Then explicitly include the bits we want
+!go.mod
+!go.sum
+!*.go
