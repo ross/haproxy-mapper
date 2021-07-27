@@ -31,7 +31,7 @@ func AzureOriginCreate() (*AzureOrigin, error) {
 	return &AzureOrigin{
 		httpJson: HttpJsonCreate(),
 		Emitter: Emitter{
-			id: "aws",
+			id: "azure",
 		},
 	}, nil
 }
