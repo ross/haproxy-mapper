@@ -84,48 +84,68 @@ func (m *MaxMindCityOrigin) AddSubdivisionsReceiver(receiver Receiver) {
 }
 
 func (m *MaxMindCityOrigin) headers() error {
-	city, err := MaxMindHeader("City", "City", m.db.Metadata)
+	city, err := MaxMindHeader("City", m.db.Metadata)
 	if err != nil {
 		return err
 	}
 
-	if err = m.city.Header(city); err != nil {
+	header := Header{
+		general: city,
+		columns: "# cidr city\n",
+	}
+	if err = m.city.Header(header); err != nil {
 		return err
 	}
 
-	continent, err := MaxMindHeader("Continent", "Continent", m.db.Metadata)
+	continent, err := MaxMindHeader("Continent", m.db.Metadata)
 	if err != nil {
 		return err
 	}
 
-	if err = m.continent.Header(continent); err != nil {
+	header = Header{
+		general: continent,
+		columns: "# cidr continent\n",
+	}
+	if err = m.continent.Header(header); err != nil {
 		return err
 	}
 
-	country, err := MaxMindHeader("Country", "Country", m.db.Metadata)
+	country, err := MaxMindHeader("Country", m.db.Metadata)
 	if err != nil {
 		return err
 	}
 
-	if err = m.country.Header(country); err != nil {
+	header = Header{
+		general: country,
+		columns: "# cidr country\n",
+	}
+	if err = m.country.Header(header); err != nil {
 		return err
 	}
 
-	location, err := MaxMindHeader("Location", "Location (/contient-code[/country-code][/subdivisions]*[/City])", m.db.Metadata)
+	location, err := MaxMindHeader("Location", m.db.Metadata)
 	if err != nil {
 		return err
 	}
 
-	if err = m.location.Header(location); err != nil {
+	header = Header{
+		general: location,
+		columns: "# cidr /contient-code[/country-iso-code][/subdivisions]*[/City]\n",
+	}
+	if err = m.location.Header(header); err != nil {
 		return err
 	}
 
-	subdivisions, err := MaxMindHeader("Subdivisions", "Subdivisions (comma seperated list)", m.db.Metadata)
+	subdivisions, err := MaxMindHeader("Subdivisions", m.db.Metadata)
 	if err != nil {
 		return err
 	}
 
-	return m.subdivisions.Header(subdivisions)
+	header = Header{
+		general: subdivisions,
+		columns: "# cidr subdivision[, sudivision]*\n",
+	}
+	return m.subdivisions.Header(header)
 }
 
 func (m *MaxMindCityOrigin) Run(ipv4Only bool) error {

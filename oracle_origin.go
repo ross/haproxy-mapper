@@ -30,6 +30,19 @@ func OracleOriginCreate() (*OracleOrigin, error) {
 }
 
 func (o *OracleOrigin) Run(ipv4Only bool) error {
+	header := Header{
+		general: `#
+# IP to Oracle mapping
+#
+# https://docs.oracle.com/en-us/iaas/tools/public_ip_ranges.json
+#
+`,
+		columns: "# cidr Oracle/service[,service]*/region\n",
+	}
+	if err := o.Header(header); err != nil {
+		return err
+	}
+
 	ranges := oraclePublicIpRanges{}
 	err := o.httpJson.Fetch("https://docs.oracle.com/en-us/iaas/tools/public_ip_ranges.json", "GET", &ranges)
 	if err != nil {
@@ -42,7 +55,7 @@ func (o *OracleOrigin) Run(ipv4Only bool) error {
 		for _, cidr := range region.Cidrs {
 			// Multiple tags for a given cidr, best we can do is sort and comma seperate them...
 			sort.Strings(cidr.Tags)
-			value := "Oracle/" + region.Region + "/" + strings.Join(cidr.Tags, ",")
+			value := "Oracle/" + strings.Join(cidr.Tags, ",") + "/" + region.Region
 			block, err := BlockCreateWithCidr(&cidr.Cidr, &value)
 			if err != nil {
 				return err

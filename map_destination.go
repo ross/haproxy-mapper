@@ -27,12 +27,18 @@ func MapDestinationCreate(filename string) (*MapDestination, error) {
 
 func (m *MapDestination) Subscribed(id string) {}
 
-func (m *MapDestination) Header(id string, header string) error {
-	var err error
-	if len(header) > 0 {
-		_, err = m.buf.WriteString(header)
+func (m *MapDestination) Header(id string, header Header) error {
+	if len(header.general) > 0 {
+		if _, err := m.buf.WriteString(header.general); err != nil {
+			return err
+		}
 	}
-	return err
+	if len(header.columns) > 0 {
+		if _, err := m.buf.WriteString(header.columns); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (m *MapDestination) Receive(id string, block *Block) error {

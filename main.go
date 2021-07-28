@@ -89,7 +89,7 @@ func main() {
 
 	var providerMerger *MergingProcessor
 	if *includeProvider {
-		providerMerger = MergingProcessorCreate("providerMerger")
+		providerMerger = MergingProcessorCreate("provider")
 
 		ipToProvider, err := MapDestinationCreate(path.Join(*outdir, "ip_to_provider"))
 		if err != nil {

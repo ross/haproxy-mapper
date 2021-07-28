@@ -1,8 +1,13 @@
 package main
 
+type Header struct {
+	general string
+	columns string
+}
+
 type Receiver interface {
 	Subscribed(id string)
-	Header(id, header string) error
+	Header(id string, header Header) error
 	Receive(id string, block *Block) error
 	Done(id string) error
 }
@@ -23,7 +28,7 @@ func (e *Emitter) AddReceiver(receiver Receiver) {
 	receiver.Subscribed(e.id)
 }
 
-func (e *Emitter) Header(header string) error {
+func (e *Emitter) Header(header Header) error {
 	for _, receiver := range e.receivers {
 		err := receiver.Header(e.id, header)
 		if err != nil {
