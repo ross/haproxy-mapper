@@ -20,6 +20,17 @@ func (m *MergingProcessor) Subscribed(id string) {
 	m.queues[id] = make([]*Block, 0)
 }
 
+func (m *MergingProcessor) Header(id, header string) error {
+	// TODO: header specific to the merging processor
+	for _, receiver := range m.receivers {
+		if err := receiver.Header(id, header); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (m *MergingProcessor) Receive(id string, block *Block) error {
 	m.queues[id] = append(m.queues[id], block)
 	return m.checkEmit()

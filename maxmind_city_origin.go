@@ -83,7 +83,56 @@ func (m *MaxMindCityOrigin) AddSubdivisionsReceiver(receiver Receiver) {
 	m.subdivisions.AddReceiver(receiver)
 }
 
+func (m *MaxMindCityOrigin) headers() error {
+	city, err := MaxMindHeader("City", "City", m.db.Metadata)
+	if err != nil {
+		return err
+	}
+
+	if err = m.city.Header(city); err != nil {
+		return err
+	}
+
+	continent, err := MaxMindHeader("Continent", "Continent", m.db.Metadata)
+	if err != nil {
+		return err
+	}
+
+	if err = m.continent.Header(continent); err != nil {
+		return err
+	}
+
+	country, err := MaxMindHeader("Country", "Country", m.db.Metadata)
+	if err != nil {
+		return err
+	}
+
+	if err = m.country.Header(country); err != nil {
+		return err
+	}
+
+	location, err := MaxMindHeader("Location", "Location (/contient-code[/country-code][/subdivisions]*[/City])", m.db.Metadata)
+	if err != nil {
+		return err
+	}
+
+	if err = m.location.Header(location); err != nil {
+		return err
+	}
+
+	subdivisions, err := MaxMindHeader("Subdivisions", "Subdivisions (comma seperated list)", m.db.Metadata)
+	if err != nil {
+		return err
+	}
+
+	return m.subdivisions.Header(subdivisions)
+}
+
 func (m *MaxMindCityOrigin) Run(ipv4Only bool) error {
+	if err := m.headers(); err != nil {
+		return err
+	}
+
 	cidr := "::/0"
 	if ipv4Only {
 		cidr = "0.0.0.0/0"

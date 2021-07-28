@@ -27,6 +27,14 @@ func MapDestinationCreate(filename string) (*MapDestination, error) {
 
 func (m *MapDestination) Subscribed(id string) {}
 
+func (m *MapDestination) Header(id string, header string) error {
+	var err error
+	if len(header) > 0 {
+		_, err = m.buf.WriteString(header)
+	}
+	return err
+}
+
 func (m *MapDestination) Receive(id string, block *Block) error {
 	if m.buf == nil {
 		return errors.New("Write called on closed Map")
