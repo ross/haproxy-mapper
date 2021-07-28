@@ -109,6 +109,13 @@ We can then include the variable's value in our `log-format` to emit its value a
   log-format "backend_name=%b ... client_ip_location=%{+Q,+E}[var(txn.client_ip_location)] ..."
 ```
 
+For map values that do not contain spaces or special characters the quoting and
+escaping can be omitted, e.g ip_to_country which uses the 2-letter ISO codes.
+
+```
+  log-format "backend_name=%b ... client_ip_country=%[var(txn.client_ip_country)] ..."
+```
+
 ### src vs X-Forwarded-For
 
 The above example used
