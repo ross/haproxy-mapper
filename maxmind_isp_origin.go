@@ -34,20 +34,19 @@ func MaxMindHeader(valueDescription string, dbMetadata maxminddb.Metadata) (stri
 	description, _ = dbMetadata.Description["en"]
 
 	context := struct {
-		BuildEpoch       string
-		DatabaseType     string
-		Description      string
-		NodeCount        uint
-		Now              string
-		ValueDescription string
-		ValueType        string
+		BuildEpoch   string
+		DatabaseType string
+		Description  string
+		NodeCount    uint
+		Now          string
+		ValueType    string
 	}{
-		BuildEpoch:       EpochToIso8601(dbMetadata.BuildEpoch),
-		DatabaseType:     dbMetadata.DatabaseType,
-		Description:      description,
-		NodeCount:        dbMetadata.NodeCount,
-		Now:              NowIso8610(),
-		ValueDescription: valueDescription,
+		BuildEpoch:   EpochToIso8601(dbMetadata.BuildEpoch),
+		DatabaseType: dbMetadata.DatabaseType,
+		Description:  description,
+		NodeCount:    dbMetadata.NodeCount,
+		Now:          NowIso8610(),
+		ValueType:    valueDescription,
 	}
 
 	var rendered bytes.Buffer
