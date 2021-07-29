@@ -281,7 +281,9 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
-			city.AddContinentReceiver(ipToContinent)
+			reducer := CombiningProcessorCreate()
+			city.AddContinentReceiver(reducer)
+			reducer.AddReceiver(ipToContinent)
 		}
 
 		if *includeCountry {
