@@ -46,6 +46,20 @@ func (s *SpamhausOrigin) runUrl(url string, blocks *Blocks) error {
 }
 
 func (s *SpamhausOrigin) Run(ipv4Only bool) error {
+	header := Header{
+		general: `#
+# IP to Spamhaus mapping
+#
+# https://www.spamhaus.org/drop/drop.lasso
+# https://www.spamhaus.org/drop/edrop.lasso
+# https://www.spamhaus.org/drop/dropv6.txt
+#
+`,
+		columns: "# cidr Spamhaus/id\n",
+	}
+	if err := s.Header(header); err != nil {
+		return err
+	}
 
 	blocks := make(Blocks, 0)
 	err := s.runUrl("https://www.spamhaus.org/drop/drop.lasso", &blocks)

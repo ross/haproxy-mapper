@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"net"
 	"strings"
 
@@ -37,24 +38,27 @@ func MaxMindCityOriginCreate(filename string) (*MaxMindCityOrigin, error) {
 	if err != nil {
 		return nil, err
 	}
+	if !strings.HasSuffix(db.Metadata.DatabaseType, "City") {
+		return nil, errors.New("provided database is not MaxMind City")
+	}
 
 	return &MaxMindCityOrigin{
 		Filename: filename,
 		db:       db,
 		city: Emitter{
-			id: "city.continent",
+			id: "maxmind.continent",
 		},
 		continent: Emitter{
-			id: "city.continent",
+			id: "maxmind.continent",
 		},
 		country: Emitter{
-			id: "city.country",
+			id: "maxmind.country",
 		},
 		location: Emitter{
-			id: "city.location",
+			id: "maxmind.location",
 		},
 		subdivisions: Emitter{
-			id: "city.location",
+			id: "maxmind.subdivisions",
 		},
 	}, nil
 }
@@ -79,7 +83,76 @@ func (m *MaxMindCityOrigin) AddSubdivisionsReceiver(receiver Receiver) {
 	m.subdivisions.AddReceiver(receiver)
 }
 
+func (m *MaxMindCityOrigin) headers() error {
+	city, err := MaxMindHeader("City", m.db.Metadata)
+	if err != nil {
+		return err
+	}
+
+	header := Header{
+		general: city,
+		columns: "# cidr city\n",
+	}
+	if err = m.city.Header(header); err != nil {
+		return err
+	}
+
+	continent, err := MaxMindHeader("Continent", m.db.Metadata)
+	if err != nil {
+		return err
+	}
+
+	header = Header{
+		general: continent,
+		columns: "# cidr continent\n",
+	}
+	if err = m.continent.Header(header); err != nil {
+		return err
+	}
+
+	country, err := MaxMindHeader("Country", m.db.Metadata)
+	if err != nil {
+		return err
+	}
+
+	header = Header{
+		general: country,
+		columns: "# cidr country\n",
+	}
+	if err = m.country.Header(header); err != nil {
+		return err
+	}
+
+	location, err := MaxMindHeader("Location", m.db.Metadata)
+	if err != nil {
+		return err
+	}
+
+	header = Header{
+		general: location,
+		columns: "# cidr /contient-code[/country-iso-code][/subdivisions]*[/City]\n",
+	}
+	if err = m.location.Header(header); err != nil {
+		return err
+	}
+
+	subdivisions, err := MaxMindHeader("Subdivisions", m.db.Metadata)
+	if err != nil {
+		return err
+	}
+
+	header = Header{
+		general: subdivisions,
+		columns: "# cidr subdivision[, sudivision]*\n",
+	}
+	return m.subdivisions.Header(header)
+}
+
 func (m *MaxMindCityOrigin) Run(ipv4Only bool) error {
+	if err := m.headers(); err != nil {
+		return err
+	}
+
 	cidr := "::/0"
 	if ipv4Only {
 		cidr = "0.0.0.0/0"
@@ -118,7 +191,10 @@ func (m *MaxMindCityOrigin) Run(ipv4Only bool) error {
 					}
 				}
 				if len(subs) > 0 {
-					subs := strings.Join(subs, "/")
+					// We'll use a comma seperated list here as that will allow
+					// header parsing to see each subdivision as a seperate
+					// header value when there are multiple.
+					subs := strings.Join(subs, ", ")
 					m.subdivisions.Emit(BlockCreate(net, &subs))
 				}
 

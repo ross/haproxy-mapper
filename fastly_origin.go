@@ -20,6 +20,19 @@ func FastlyOriginCreate() (*FastlyOrigin, error) {
 }
 
 func (f *FastlyOrigin) Run(ipv4Only bool) error {
+	header := Header{
+		general: `#
+# IP to Fastly mapping
+#
+# https://api.fastly.com/public-ip-list
+#
+`,
+		columns: "# cidr Fastly\n",
+	}
+	if err := f.Header(header); err != nil {
+		return err
+	}
+
 	ranges := fastlyPublicIpList{}
 	err := f.httpJson.Fetch("https://api.fastly.com/public-ip-list", "GET", &ranges)
 	if err != nil {

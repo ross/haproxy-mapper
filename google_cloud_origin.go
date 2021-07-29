@@ -28,6 +28,21 @@ func GoogleCloudOriginCreate() (*GoogleCloudOrigin, error) {
 }
 
 func (g *GoogleCloudOrigin) Run(ipv4Only bool) error {
+	header := Header{
+		general: `#
+# IP to Google Cloud mapping
+#
+# https://www.gstatic.com/ipranges/cloud.json
+#
+# Note: All "service" values appear to be "Google Cloud"
+#
+`,
+		columns: "# cidr GC/service/scope\n",
+	}
+	if err := g.Header(header); err != nil {
+		return err
+	}
+
 	ranges := gcIpRanges{}
 	err := g.httpJson.Fetch("https://www.gstatic.com/ipranges/cloud.json", "GET", &ranges)
 	if err != nil {

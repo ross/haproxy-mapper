@@ -33,6 +33,18 @@ func AzureOriginCreate() (*AzureOrigin, error) {
 }
 
 func (a *AzureOrigin) Run(ipv4Only bool) error {
+	header := Header{
+		general: `#
+# IP to Azure mapping
+#
+# https://www.microsoft.com/en-us/download/confirmation.aspx?id=56519 (hack)
+#
+`,
+		columns: "# cidr Azure/service/region\n",
+	}
+	if err := a.Header(header); err != nil {
+		return err
+	}
 
 	// WARNING: hack incoming... Azure doesn't have a non-authenticated way to
 	// grab its list of IP addresses via an api call, but you can visit a

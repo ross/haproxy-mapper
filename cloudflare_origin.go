@@ -40,6 +40,18 @@ func (c *CloudflareOrigin) runUrl(url string) error {
 }
 
 func (c *CloudflareOrigin) Run(ipv4Only bool) error {
+	header := Header{
+		general: `#
+# IP to Cloudflare mapping
+#
+# https://www.cloudflare.com/ips-v4
+#
+`,
+		columns: "# cidr Cloudflare\n",
+	}
+	if err := c.Header(header); err != nil {
+		return err
+	}
 
 	err := c.runUrl("https://www.cloudflare.com/ips-v4")
 	if err != nil {

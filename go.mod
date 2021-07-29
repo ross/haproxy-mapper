@@ -1,4 +1,4 @@
-module mapper
+module haproxy-mapper
 
 go 1.16
 

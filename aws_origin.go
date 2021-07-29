@@ -43,6 +43,19 @@ func AwsOriginCreate() (*AwsOrigin, error) {
 }
 
 func (a *AwsOrigin) Run(ipv4Only bool) error {
+	header := Header{
+		general: `#
+# IP to AWS mapping
+#
+# https://ip-ranges.amazonaws.com/ip-ranges.json
+#
+`,
+		columns: "# cidr AWS/service/region\n",
+	}
+	if err := a.Header(header); err != nil {
+		return err
+	}
+
 	ranges := awsIpRanges{}
 	err := a.httpJson.Fetch("https://ip-ranges.amazonaws.com/ip-ranges.json", "GET", &ranges)
 	if err != nil {
