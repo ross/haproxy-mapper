@@ -43,19 +43,22 @@ func IPNext(ip *net.IP) *net.IP {
 	return &out
 }
 
-func IPNetFromFirstLast(first, last *net.IP) []*net.IPNet {
-	ret := make([]*net.IPNet, 0)
+func IPNetFromFirstLast(first, last *net.IP, ret *[]*net.IPNet) {
 	if bytes.Compare(*first, *last) == 0 {
 		// It's a /32, short circuit
-		ret = append(ret, &net.IPNet{
+		//log.Printf("IPNetFromFirstLast: /32 short circuit")
+		*ret = append(*ret, &net.IPNet{
 			IP:   *first,
 			Mask: net.CIDRMask(32, 32),
 		})
+		return
 	} else if bytes.Compare(*first, net.IP{0, 0, 0, 0}) == 0 && bytes.Compare(*last, net.IP{255, 255, 255, 255}) == 0 {
-		ret = append(ret, &net.IPNet{
+		//log.Printf("IPNetFromFirstLast: /0 short circuit")
+		*ret = append(*ret, &net.IPNet{
 			IP:   *first,
 			Mask: net.CIDRMask(0, 32),
 		})
+		return
 	} else {
 		numBits := 32
 		if first.To4() == nil {
@@ -66,38 +69,38 @@ func IPNetFromFirstLast(first, last *net.IP) []*net.IPNet {
 
 		bit := 0
 		// TODO: explore binary search
-		for bit < numBits {
+		for bit <= numBits {
 			mask := net.CIDRMask(bit, numBits)
 			candidate := &net.IPNet{
 				IP:   first.Mask(mask),
 				Mask: mask,
 			}
-			//log.Printf("IPNetFromFirstLast:   candidate.IP=%s, candidate.Mask=%s", candidate.IP, candidate.Mask)
+			//log.Printf("IPNetFromFirstLast:   candidate.IP=%s, candidate.Mask=%s, bit=%d", candidate.IP, candidate.Mask, bit)
 			// Make sure this candidate starts on the right IP
 			if bytes.Compare(candidate.IP, *first) == 0 {
 				candidate_last := NetLast(candidate)
+				//log.Printf("IPNetFromFirstLast:   candidate.Last=%s", candidate_last.String())
 				// If it's last is less than ours we can use it
 				if bytes.Compare(*candidate_last, *last) <= 0 {
-					//log.Printf("IPNetFromFirstLast:   match")
+					//log.Printf("IPNetFromFirstLast:   match, net=%s", candidate.String())
 					// We found one small enough (or exact sized) so use it
-					ret = append(ret, candidate)
+					*ret = append(*ret, candidate)
 
-					// We've emitted part of our block, shift to the IP after what we just emitted
+					// Shift to the IP after what we just found
 					first = IPNext(candidate_last)
-					// And reset bits
-					bit = 0
-					//log.Printf("IPNetFromFirstLast:   new first=%s, reset bit", first.String())
-
 					if bytes.Compare(*first, *last) > 0 {
 						//log.Printf("IPNetFromFirstLast:   beyond last, we're done")
-						break
+						return
 					}
+					// Otherwise recurse down the remaining range to find further nets
+					IPNetFromFirstLast(first, last, ret)
+					// And then we're done
+					return
 				}
 			}
 			// try one smaller
 			bit = bit + 1
 		}
-
+		// should never get here
 	}
-	return ret
 }

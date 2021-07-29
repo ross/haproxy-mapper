@@ -370,6 +370,16 @@ func TestIPNetFromFirstLast(t *testing.T) {
 				"255.255.255.240/29",
 				"255.255.255.248/30",
 				"255.255.255.252/31",
+				"255.255.255.254/32",
+			},
+		},
+		{
+			// Small then big
+			first: net.IP{1, 0, 255, 255},
+			last:  net.IP{1, 1, 255, 255},
+			expected: []string{
+				"1.0.255.255/32",
+				"1.1.0.0/16",
 			},
 		},
 		{
@@ -388,7 +398,8 @@ func TestIPNetFromFirstLast(t *testing.T) {
 			},
 		},
 	} {
-		got := IPNetFromFirstLast(&test.first, &test.last)
+		got := make([]*net.IPNet, 0)
+		IPNetFromFirstLast(&test.first, &test.last, &got)
 		if got == nil {
 			t.Errorf("IPNetFromFirstLast(%s, %s) -> nil", test.first.String(), test.last.String())
 			continue

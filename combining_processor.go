@@ -33,7 +33,9 @@ func (m *CombiningProcessor) Header(id string, header Header) error {
 func (m *CombiningProcessor) buildAndEmit() error {
 	//log.Printf("buildAndEmit: first=%s, last=%s, value='%s'", m.first.String(), m.last.String(), m.value)
 
-	for _, net := range IPNetFromFirstLast(&m.first, &m.last) {
+	nets := make([]*net.IPNet, 0)
+	IPNetFromFirstLast(&m.first, &m.last, &nets)
+	for _, net := range nets {
 		block := BlockCreate(net, &m.value)
 		//log.Printf("buildAndEmit:   emit.net=%s, value='%s'", block.net.String(), *block.value)
 		if err := m.Emit(block); err != nil {
