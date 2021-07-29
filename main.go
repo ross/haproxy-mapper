@@ -243,7 +243,9 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
-			isp.AddAsnReceiver(ipToAsn)
+			reducer := CombiningProcessorCreate()
+			isp.AddAsnReceiver(reducer)
+			reducer.AddReceiver(ipToAsn)
 		}
 
 		if *includeIsp {
@@ -251,7 +253,9 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
-			isp.AddIspReceiver(ipToIsp)
+			reducer := CombiningProcessorCreate()
+			isp.AddIspReceiver(reducer)
+			reducer.AddReceiver(ipToIsp)
 		}
 
 		wg.Add(1)
@@ -273,7 +277,9 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
-			city.AddCityReceiver(ipToCity)
+			reducer := CombiningProcessorCreate()
+			city.AddCityReceiver(reducer)
+			reducer.AddReceiver(ipToCity)
 		}
 
 		if *includeContinent {
@@ -291,7 +297,9 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
-			city.AddCountryReceiver(ipToCountry)
+			reducer := CombiningProcessorCreate()
+			city.AddCountryReceiver(reducer)
+			reducer.AddReceiver(ipToCountry)
 		}
 
 		if *includeLocation {
@@ -299,7 +307,9 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
-			city.AddLocationReceiver(ipToLocation)
+			reducer := CombiningProcessorCreate()
+			city.AddLocationReceiver(reducer)
+			reducer.AddReceiver(ipToLocation)
 		}
 
 		if *includeSubdivisions {
@@ -307,7 +317,9 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
-			city.AddSubdivisionsReceiver(ipToSubdivisions)
+			reducer := CombiningProcessorCreate()
+			city.AddSubdivisionsReceiver(reducer)
+			reducer.AddReceiver(ipToSubdivisions)
 		}
 
 		wg.Add(1)
