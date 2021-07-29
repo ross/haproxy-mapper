@@ -10,7 +10,6 @@ type CombiningProcessor struct {
 	last     net.IP
 	next     net.IP
 	value    string
-	heldBack *Block
 	Emitter
 }
 
