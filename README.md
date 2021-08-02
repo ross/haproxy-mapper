@@ -84,8 +84,8 @@ HAProxy via ACL's. For example the following would disallow requests that come
 from IPs that have the country equal to Canada.
 
 ```
-http-request set-var(txn.client_ip_location) src,map_ip(/etc/haproxy/maps/ip_to_location)
-acl is_country_ca var(txn.client_ip_location) -i CA
+http-request set-var(txn.client_ip_country) src,map_ip(/etc/haproxy/maps/ip_to_country)
+acl is_country_ca var(txn.client_ip_country) -i CA
 use_backend 403_forbidden backend_banned_banhammer if is_country_ca
 ```
 
